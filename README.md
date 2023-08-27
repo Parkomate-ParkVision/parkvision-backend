@@ -1,6 +1,5 @@
 # Parkomate Parking Analytics Dashboard (Backend)
 
-<br>
 Frontend - https://github.com/BE-Project-Parkomate/dashboard-frontend
 
 Clone the project-
