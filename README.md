@@ -1,6 +1,5 @@
-# Parkomate Parking Analytics Dashboard Backend
+# Parkomate Parking Analytics Dashboard (Backend)
 
-This is the backend for the project.
 <br>
 Frontend - https://github.com/BE-Project-Parkomate/dashboard-frontend
 
