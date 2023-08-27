@@ -62,7 +62,7 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     phone = PhoneNumberField(unique=True)
-    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, blank=True, null=True, related_name='user')
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, blank=False, null=False, related_name='user')
     privilege = models.IntegerField(choices=PRIVILEGE_CHOICES, default=1)
 
     is_active = models.BooleanField(default=True)
@@ -72,7 +72,7 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
 
     objects = ParkomateUserManager()
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name', 'phone']
+    REQUIRED_FIELDS = ['name', 'organization', 'phone']
 
     def __str__(self):
         return self.name
