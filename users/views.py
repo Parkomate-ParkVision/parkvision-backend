@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from users.models import ParkomateUser
 from users.serializers import ParkomateUserSerializer
 from rest_framework.views import APIView
