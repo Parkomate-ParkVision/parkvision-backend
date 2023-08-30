@@ -40,11 +40,9 @@ class ParkomateUserManager(BaseUserManager):
             raise ValueError("Users must have name")
         if not phone:
             raise ValueError("Users must have phone number")
-        organization = Organization.objects.get(id=os.getenv('SUPERUSER_ORGANIZATION'))
         user = self.model(
             email = self.normalize_email(email),
             name = name,
-            organization = organization,
             phone = phone,
             **extra_fields,
         )
@@ -62,7 +60,7 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     phone = PhoneNumberField(unique=True)
-    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, blank=False, null=False, related_name='user')
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, blank=True, null=True, related_name='user')
     privilege = models.IntegerField(choices=PRIVILEGE_CHOICES, default=1)
 
     is_active = models.BooleanField(default=True)

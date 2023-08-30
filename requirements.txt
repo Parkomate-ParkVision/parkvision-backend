@@ -3,3 +3,4 @@ djangorestframework
 python-dotenv
 django-phonenumber-field
 phonenumbers
+mysqlclient

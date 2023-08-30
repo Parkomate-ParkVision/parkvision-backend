@@ -20,7 +20,6 @@ DB_USER = <db_user>
 DB_PASSWORD = <db_password>
 DB_HOST = <db_host>
 DB_PORT = <db_port>
-SUPERUSER_ORGANIZATION = 2f939198-3102-448b-92ea-e56eef1272c5
 ```
 
 Migrate the project-
