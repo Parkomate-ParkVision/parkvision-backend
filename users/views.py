@@ -1,52 +1,44 @@
 from users.models import ParkomateUser
-from users.serializers import ParkomateUserSerializer
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import IsAuthenticated
+from users.serializers import (
+    LoginSerializer,
+    RegisterSerializer,
+    ParkomateUserSerializer,
+    LogoutSerializer,
+)
+from rest_framework import status
 
-class ParkomateUserRegisterView(APIView):
+class ParkomateUserRegisterView(GenericAPIView):
+    serializer_class = RegisterSerializer
+    def post(self,request):
+        user=request.data
+        serializer = self.serializer_class(data=user)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        user_id = ParkomateUser.objects.get(email=user['email']).id
+        user_data = serializer.data
+        user_data['id'] = user_id
+        return Response(user_data, status=status.HTTP_201_CREATED)
+    
+class ParkomateUserLoginView(GenericAPIView):
+    serializer_class = LoginSerializer
+    def post(self,request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+    
+class ParkomateUserLogoutView(GenericAPIView):
+    serializer_class = LogoutSerializer
+    permission_classes = (IsAuthenticated,)
     def post(self, request):
-        name = request.data.get('name', None)
-        email = request.data.get('email', None)
-        phone = request.data.get('phone', None)
-        organization = request.data.get('organization', None)
-        password = request.data.get('password', None)
-        privilege = request.data.get('privilege', None)
-
-        user = ParkomateUser.objects.filter(email=email)
-        if user:
-            return Response({'error': 'User already exists'}, status=400)
-        else:
-            user = ParkomateUser.objects.create(email=email, name=name, phone=phone, organization=organization, password=password, privilege=privilege)
-            serializer = ParkomateUserSerializer(user)
-            return Response(
-                {'status': 'User created', 'data': serializer.data}, 
-                status=201
-            )
-
-class ParkomateUserLoginView(APIView):
-    def post(self, request):
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
-        user = ParkomateUser.objects.filter(email=email, password=password)
-        if user:
-            serializer = ParkomateUserSerializer(user)
-            return Response(
-                {'status': 'User logged in', 'data': serializer.data}, 
-                status=200
-            )
-
-class ParkomateUserLogoutView(APIView):
-    def post(self, request):
-        email = request.data.get('email', None)
-        user = ParkomateUser.objects.filter(email=email)
-        if user:
-            serializer = ParkomateUserSerializer(user)
-            return Response(
-                {'status': 'User logged out', 'data': serializer.data}, 
-                status=200
-            )
-        
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
 class ParkomateUserViewSet(ModelViewSet):
     queryset = ParkomateUser.objects.all()
     serializer_class = ParkomateUserSerializer

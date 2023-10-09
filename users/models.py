@@ -5,7 +5,6 @@ from uuid import uuid4
 from phonenumber_field.modelfields import PhoneNumberField
 from api.models import Organization
 from dotenv import load_dotenv
-import os
 load_dotenv()
 
 class ParkomateUserManager(BaseUserManager):
