@@ -3,7 +3,7 @@ from .models import Organization, Gate, Vehicle
 
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ('name', 'address', 'entry_gates', 'exit_gates', 'total_slots', 'filled_slots')
-    search_fields = ('name',)
+    search_fields = ('name', 'address')
     list_filter = ('entry_gates', 'exit_gates', 'total_slots', 'filled_slots')
 
 class GateAdmin(admin.ModelAdmin):
