@@ -4,3 +4,4 @@ python-dotenv
 django-phonenumber-field
 phonenumbers
 mysqlclient
+django-cors-headers

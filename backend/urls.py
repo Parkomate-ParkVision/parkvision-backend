@@ -11,6 +11,7 @@ class HomeView(APIView):
                 '/admin/',
                 '/users/',
                 '/api/',
+                '/parking/'
             ]
         })
 
@@ -19,4 +20,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("users/", include("users.urls")),
     path("api/", include("api.urls")),
+    path("parking/", include("parking.urls")),
 ]
