@@ -35,6 +35,9 @@ INSTALLED_APPS = [
     "phonenumber_field",
     "api",
     "parking",
+    "analytics",
+    'rest_framework_swagger',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -130,3 +133,11 @@ CORS_ORIGIN_WHITELIST = [
 ]
 
 AUTH_USER_MODEL = "users.ParkomateUser"
+
+REST_FRAMEWORK = {
+   'DEFAULT_PARSER_CLASSES': [
+       'rest_framework.parsers.FormParser',
+       'rest_framework.parsers.MultiPartParser',
+       'rest_framework.parsers.JSONParser',
+   ]
+}
