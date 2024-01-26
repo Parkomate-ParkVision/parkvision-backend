@@ -1,0 +1,91 @@
+version: "3.1"
+name: parkomate-dev
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: "parkomate-backend"
+    user: "1000:1000"
+    environment:
+      ENV: dev
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/opt/:Z
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: "parkomate-db"
+    restart: always
+    user: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - 5432:5432
+    expose:
+      - 5432
+    volumes:
+      - parkomate-db:/var/lib/postgresql/data
+
+  pgadmin:
+    container_name: "parkomate-pgadmin"
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    volumes:
+      - parkomate-pgadmin:/var/lib/pgadmin
+
+  rabbit-mq:
+    image: rabbitmq:3.7-management
+    restart: always
+    container_name: "parkomate-rabbitmq"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      
+  celery:
+    container_name: "parkomate-celery"
+    build: .
+    command: celery -A backend worker -l INFO  -E -f /opt/logs/celery/celery.logs
+    volumes:
+      - .:/opt/
+    depends_on:
+      - rabbit-mq
+      - backend
+    environment:
+      -  DJANGO_SETTINGS_MODULE=backend.settings
+
+  flower:
+    container_name: "parkomate-flower"
+    build: .
+    command: celery -A backend flower --port=5555
+    image: mher/flower:0.9.7
+    ports:
+      - 5555:5555
+    volumes:
+      - .:/opt/
+    depends_on:
+      - backend
+      - celery
+      - rabbit-mq
+    environment:
+      -  DJANGO_SETTINGS_MODULE=backend.settings
+
+volumes:
+  parkomate-backend:
+  parkomate-pgadmin:
+  parkomate-db:

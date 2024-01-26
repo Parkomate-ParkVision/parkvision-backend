@@ -1,11 +1,24 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-
+from dotenv import load_dotenv
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+API_LOG_DIR = os.path.join(LOGS_DIR, "api")
+GUNICORN_LOG_DIR = os.path.join(LOGS_DIR, 'gunicorn')
+CELERY_LOG_DIR = os.path.join(LOGS_DIR, 'celery')
+EXCEPTION_LOG_DIR = os.path.join(LOGS_DIR, "exceptions")
+
+if not os.path.exists(LOGS_DIR):
+    os.mkdir(LOGS_DIR)
+    os.mkdir(API_LOG_DIR)
+    os.mkdir(GUNICORN_LOG_DIR)
+    os.mkdir(CELERY_LOG_DIR)
+    os.mkdir(EXCEPTION_LOG_DIR)
 
 
 # Quick-start development settings - unsuitable for production
@@ -76,11 +89,11 @@ WSGI_APPLICATION = "backend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST" : os.getenv("DB_HOST"),
+        "PASSWORD": os.getenv("DB_PASS"),
+        "HOST": os.getenv("DB_HOST"),
         "PORT": os.getenv("DB_PORT"),
     }
 }
@@ -120,6 +133,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
+CELERY_BROKER_URL = 'amqp://admin:admin@parkomate-rabbitmq'
+
 STATIC_URL = "static/"
 
 # Default primary key field type
@@ -135,9 +150,9 @@ CORS_ORIGIN_WHITELIST = [
 AUTH_USER_MODEL = "users.ParkomateUser"
 
 REST_FRAMEWORK = {
-   'DEFAULT_PARSER_CLASSES': [
-       'rest_framework.parsers.FormParser',
-       'rest_framework.parsers.MultiPartParser',
-       'rest_framework.parsers.JSONParser',
-   ]
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.JSONParser',
+    ]
 }

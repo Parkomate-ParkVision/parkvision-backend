@@ -1,0 +1,4 @@
+[2024-01-26 08:06:22,014: INFO/MainProcess] Connected to amqp://admin:**@parkomate-rabbitmq:5672//
+[2024-01-26 08:06:22,021: INFO/MainProcess] mingle: searching for neighbors
+[2024-01-26 08:06:23,054: INFO/MainProcess] mingle: all alone
+[2024-01-26 08:06:23,096: INFO/MainProcess] celery@0ca437c3f1d2 ready.
