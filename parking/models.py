@@ -1,6 +1,7 @@
 from django.db import models
-from api.models import Organization
+from organization.models import Organization
 import uuid
+
 
 class Floor(models.Model):
     number = models.IntegerField(primary_key=True, unique=True, auto_created=True, default=1)
@@ -9,7 +10,8 @@ class Floor(models.Model):
 
     def __str__(self):
         return "Floor " + str(self.number)
-    
+
+
 class Section(models.Model):
     name = models.CharField(max_length=100, primary_key=True, unique=True, auto_created=True, default='A')
     floor = models.ForeignKey(Floor, related_name='sections', on_delete=models.CASCADE)
@@ -17,7 +19,8 @@ class Section(models.Model):
 
     def __str__(self):
         return "Floor " + str(self.floor.number) + ' - Section ' + self.name
-    
+
+
 class Location(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, auto_created=True, default=uuid.uuid4)
     name = models.CharField(max_length=100, blank=True, null=True)

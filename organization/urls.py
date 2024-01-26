@@ -2,16 +2,15 @@ from django.urls import path
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
-from api.views import (
-    OrganizationViewSet,
-    GateViewSet,
-    VehicleViewSet
+from organization.views import (
+    OrganizationView,
+    GateView
 )
 
 router = DefaultRouter()
-router.register('organizations', OrganizationViewSet, basename='organizations')
-router.register('gates', GateViewSet, basename='gates')
-router.register('vehicles', VehicleViewSet, basename='vehicles')
+router.register('organizations', OrganizationView, basename='organizations')
+router.register('gates', GateView, basename='gates')
+
 
 class HomeView(APIView):
     def get(self, request):
@@ -20,9 +19,9 @@ class HomeView(APIView):
             'endpoints': [
                 '/organizations/',
                 '/gates/',
-                '/vehicles/',
             ]
         })
+
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),

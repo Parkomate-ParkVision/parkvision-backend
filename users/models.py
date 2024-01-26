@@ -3,9 +3,10 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from uuid import uuid4
 from phonenumber_field.modelfields import PhoneNumberField
-from api.models import Organization
+from organization.models import Organization
 from dotenv import load_dotenv
 load_dotenv()
+
 
 class ParkomateUserManager(BaseUserManager):
     def create_user(self, email, name, organization, phone, password=None, **extra_fields):
@@ -17,12 +18,12 @@ class ParkomateUserManager(BaseUserManager):
             raise ValueError("Users must have organization id")
         if not phone:
             raise ValueError("Users must have phone number")
-        
+
         user = self.model(
-            email = self.normalize_email(email),
-            name = name,
-            organization = organization,
-            phone = phone,
+            email=self.normalize_email(email),
+            name=name,
+            organization=organization,
+            phone=phone,
             **extra_fields,
         )
         user.set_password(password)
@@ -40,15 +41,15 @@ class ParkomateUserManager(BaseUserManager):
         if not phone:
             raise ValueError("Users must have phone number")
         user = self.model(
-            email = self.normalize_email(email),
-            name = name,
-            phone = phone,
+            email=self.normalize_email(email),
+            name=name,
+            phone=phone,
             **extra_fields,
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
-    
+
 
 class ParkomateUser(AbstractBaseUser, PermissionsMixin):
     PRIVILEGE_CHOICES = (
@@ -73,6 +74,6 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.name
-    
+
     class Meta:
         db_table = 'parkomate_user'

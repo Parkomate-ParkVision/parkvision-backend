@@ -44,13 +44,14 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
-    "users",
     "phonenumber_field",
-    "api",
-    "parking",
-    "analytics",
     'rest_framework_swagger',
     'drf_yasg',
+    "analytics",
+    "organization",
+    "parking",
+    "users",
+    "vehicle",
 ]
 
 MIDDLEWARE = [
