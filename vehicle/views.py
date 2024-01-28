@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 class VehicleView(ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def list(self, request):
         vehicles = Vehicle.objects.all()

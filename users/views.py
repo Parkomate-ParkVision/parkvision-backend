@@ -32,7 +32,7 @@ class ParkomateUserLoginView(GenericAPIView):
     
 class ParkomateUserLogoutView(GenericAPIView):
     serializer_class = LogoutSerializer
-    permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)

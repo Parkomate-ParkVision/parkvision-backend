@@ -11,19 +11,19 @@ class ParkomateUserSerializer(ModelSerializer):
         fields = "__all__"
 
 class RegisterSerializer(ModelSerializer):
-    password = CharField(min_length=6, write_only=True)
+    password = CharField(write_only=True)
     class Meta:
         model = ParkomateUser
-        fields = ['name', 'email', 'phone', 'password', 'organization']
+        fields = ['name', 'email', 'phone', 'password']
     def create(self, validated_data):
         return ParkomateUser.objects.create_user(**validated_data)
     
 class LoginSerializer(serializers.ModelSerializer):
     email = CharField(max_length=255, min_length=3)
-    password = CharField(min_length=6, write_only=True)
+    password = CharField(write_only=True)
     tokens = SerializerMethodField()
     def get_tokens(self, obj):
-        user = ParkomateUser.objects.get(username=obj['email'])
+        user = ParkomateUser.objects.get(email=obj['email'])
         return {
             'refresh': user.tokens()['refresh'],
             'access': user.tokens()['access']
@@ -52,6 +52,7 @@ class LogoutSerializer(Serializer):
         return attrs
     def save(self, **kwargs):
         try:
-            RefreshToken(self.token).blacklist()
+            refresh_token = RefreshToken(self.token)
+            refresh_token.blacklist()
         except TokenError:
             self.fail('bad_token')

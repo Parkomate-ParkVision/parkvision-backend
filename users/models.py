@@ -3,26 +3,23 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from uuid import uuid4
 from phonenumber_field.modelfields import PhoneNumberField
-from organization.models import Organization
+from rest_framework_simplejwt.tokens import RefreshToken
 from dotenv import load_dotenv
 load_dotenv()
 
 
 class ParkomateUserManager(BaseUserManager):
-    def create_user(self, email, name, organization, phone, password=None, **extra_fields):
+    def create_user(self, email, name, phone, password=None, **extra_fields):
         if not email:
             raise ValueError("Users must have email address")
         if not name:
             raise ValueError("Users must have name")
-        if not organization:
-            raise ValueError("Users must have organization id")
         if not phone:
             raise ValueError("Users must have phone number")
 
         user = self.model(
             email=self.normalize_email(email),
             name=name,
-            organization=organization,
             phone=phone,
             **extra_fields,
         )
@@ -60,7 +57,6 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     phone = PhoneNumberField(unique=True)
-    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, blank=True, null=True, related_name='user')
     privilege = models.IntegerField(choices=PRIVILEGE_CHOICES, default=1)
 
     is_active = models.BooleanField(default=True)
@@ -70,10 +66,17 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
 
     objects = ParkomateUserManager()
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name', 'organization', 'phone']
+    REQUIRED_FIELDS = ['name', 'phone']
 
     def __str__(self):
         return self.name
+
+    def tokens(self):
+        refresh = RefreshToken.for_user(self)
+        return{
+            'refresh':str(refresh),
+            'access':str(refresh.access_token)
+        }
 
     class Meta:
         db_table = 'parkomate_user'

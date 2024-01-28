@@ -14,32 +14,26 @@ from rest_framework.permissions import IsAuthenticated
 class OrganizationView(ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def list(self, request):
         organizations = Organization.objects.all()
         serializer = OrganizationSerializer(organizations, many=True)
-        if serializer.is_valid():
-            return Response(serializer.data)
-        else:
-            return Response(serializer.errors)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
         user = request.user
         if organization.owner == user:
             serializer = OrganizationSerializer(organization)
-            if serializer.is_valid():
-                return Response(serializer.data)
-            else:
-                return Response(serializer.errors)
+            return Response(serializer.data)
         else:
             return Response({"error": "You are not authorized to view this organization."})
 
     def create(self, request):
-        serializer = OrganizationSerializer(data=request.data)
+        serializer = OrganizationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save(owner=request.user)
+            serializer.save()
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
@@ -85,7 +79,7 @@ class OrganizationView(ModelViewSet):
 class GateView(ModelViewSet):
     queryset = Gate.objects.all()
     serializer_class = GateSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def list(self, request):
         gates = Gate.objects.all()

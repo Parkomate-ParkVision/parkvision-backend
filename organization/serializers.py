@@ -3,6 +3,7 @@ from organization.models import (
     Gate
 )
 from rest_framework import serializers
+from users.models import ParkomateUser
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -22,6 +23,13 @@ class OrganizationSerializer(serializers.ModelSerializer):
         ]
         get_fields = fields
         list_fields = fields
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        print(user)
+        owner = ParkomateUser.objects.get(id=user.id)
+        validated_data['owner'] = owner
+        return super().create(validated_data)
 
 
 class GateSerializer(serializers.ModelSerializer):
@@ -32,7 +40,7 @@ class GateSerializer(serializers.ModelSerializer):
         model = Gate
         fields = [
             'id',
-            'organization'
+            'organization',
             'organizationName',
             'organizationAddress',
             'createdAt',

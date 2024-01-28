@@ -10,11 +10,9 @@ class ParkomateUserAdmin(UserAdmin):
         'name',
         'email',
         'phone',
-        'organization',
         'privilege'
     )
     list_filter = (
-        'organization',
         'privilege',
         'is_active',
         'is_staff',
@@ -25,7 +23,6 @@ class ParkomateUserAdmin(UserAdmin):
 
     fieldsets = (
         (None, {'fields': ('email', 'name', 'password')}),
-        ('Organization Info', {'fields': ('organization',)}),
         ('Privilege Info', {'fields': ('privilege',)}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
@@ -33,7 +30,7 @@ class ParkomateUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'name', 'password1', 'password2', 'organization', 'privilege'),
+            'fields': ('email', 'name', 'password1', 'password2', 'privilege'),
         }),
     )
 

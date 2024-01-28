@@ -1,9 +1,11 @@
 from django.db import models
 from uuid import uuid4
+from users.models import ParkomateUser
 
 
 class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    owner = models.ForeignKey(ParkomateUser, on_delete=models.CASCADE, related_name='organizations', blank=True, null=True)
     name = models.CharField(max_length=255, blank=True, null=True, unique=True)
     address = models.TextField(blank=True, null=True)
     entry_gates = models.IntegerField(blank=True, null=True)
