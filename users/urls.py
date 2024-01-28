@@ -6,11 +6,12 @@ from users.views import (
     ParkomateUserLoginView,
     ParkomateUserRegisterView,
     ParkomateUserLogoutView,
-    ParkomateUserViewSet,
+    ParkomateUserView,
 )
 
 router = DefaultRouter()
-router.register(r'users', ParkomateUserViewSet, basename='users')
+router.register(r'users', ParkomateUserView, basename='users')
+
 
 class HomeView(APIView):
     def get(self, request):
@@ -23,6 +24,7 @@ class HomeView(APIView):
                 '/users/',
             ]
         })
+
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),
