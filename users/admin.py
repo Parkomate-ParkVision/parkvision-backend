@@ -1,37 +1,31 @@
+# -*- coding: utf-8 -*-
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from users.models import ParkomateUser
 
-admin.site.site_header = 'ParkVision Admin'
+from .models import ParkomateUser
 
-class ParkomateUserAdmin(UserAdmin):
-    model = ParkomateUser
+
+@admin.register(ParkomateUser)
+class ParkomateUserAdmin(admin.ModelAdmin):
     list_display = (
+        'password',
+        'last_login',
+        'id',
         'name',
         'email',
         'phone',
-        'privilege'
-    )
-    list_filter = (
+        'profilePicture',
         'privilege',
         'is_active',
+        'is_admin',
         'is_staff',
         'is_superuser',
     )
-    search_fields = ('name', 'email')
-    ordering = ('email',)
-
-    fieldsets = (
-        (None, {'fields': ('email', 'name', 'password')}),
-        ('Privilege Info', {'fields': ('privilege',)}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
+    list_filter = (
+        'last_login',
+        'is_active',
+        'is_admin',
+        'is_staff',
+        'is_superuser',
     )
-
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('email', 'name', 'password1', 'password2', 'privilege'),
-        }),
-    )
-
-admin.site.register(ParkomateUser, ParkomateUserAdmin)
+    raw_id_fields = ('groups', 'user_permissions')
+    search_fields = ('name',)
