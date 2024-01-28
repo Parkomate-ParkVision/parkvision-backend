@@ -57,7 +57,8 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     phone = PhoneNumberField(unique=True)
-    profilePicture = models.ImageField(upload_to='profile-pictures/', null=True, blank=True)
+    profilePicture = models.URLField(
+        blank=True, null=True, default="https://img.icons8.com/fluency-systems-regular/96/user--v1.png")
     privilege = models.IntegerField(choices=PRIVILEGE_CHOICES, default=1)
 
     is_active = models.BooleanField(default=True)
@@ -74,9 +75,9 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)
-        return{
-            'refresh':str(refresh),
-            'access':str(refresh.access_token)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token)
         }
 
     class Meta:
