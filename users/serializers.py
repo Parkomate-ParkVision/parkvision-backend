@@ -30,7 +30,7 @@ class LoginSerializer(serializers.ModelSerializer):
         }
     class Meta:
         model = ParkomateUser
-        fields = ['email', 'password','tokens']
+        fields = ['id', 'email', 'profilePicture', 'password','tokens']
     def validate(self, attrs):
         email = attrs.get('email','')
         password = attrs.get('password','')
@@ -40,7 +40,9 @@ class LoginSerializer(serializers.ModelSerializer):
         if not user.is_active:
             raise AuthenticationFailed('Account disabled, contact admin')
         return {
+            'id': user.id,
             'email': user.email,
+            'pfp': user.profilePicture,
             'name': user.name,
             'tokens': user.tokens
         }

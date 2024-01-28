@@ -57,6 +57,7 @@ class ParkomateUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(verbose_name="email", max_length=60, unique=True)
     phone = PhoneNumberField(unique=True)
+    profilePicture = models.ImageField(upload_to='profile-pictures/', null=True, blank=True)
     privilege = models.IntegerField(choices=PRIVILEGE_CHOICES, default=1)
 
     is_active = models.BooleanField(default=True)

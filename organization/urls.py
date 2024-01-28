@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from organization.views import (
     OrganizationView,
-    GateView
+    GateView,
 )
 
 router = DefaultRouter()
@@ -19,6 +19,7 @@ class HomeView(APIView):
             'endpoints': [
                 '/organizations/',
                 '/gates/',
+                '/admins/',
             ]
         })
 
