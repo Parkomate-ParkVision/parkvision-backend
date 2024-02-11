@@ -10,19 +10,27 @@ from users.serializers import (
     LogoutSerializer,
 )
 from rest_framework import status
-
+from utils.emails import send_email
+import random
 
 class ParkomateUserRegisterView(GenericAPIView):
     serializer_class = RegisterSerializer
 
     def post(self, request):
         user = request.data
+        user['password'] = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user_id = ParkomateUser.objects.get(email=user['email']).id
         user_data = serializer.data
         user_data['id'] = user_id
+        user_data['password'] = user['password']
+        send_email(
+            user['email'],
+            'Parkomate Account Password',
+            f'Your password is {user["password"]}. Login to your account on the ParkVision Dashboard',
+        )
         return Response(user_data, status=status.HTTP_201_CREATED)
 
 

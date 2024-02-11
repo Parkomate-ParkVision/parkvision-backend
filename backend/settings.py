@@ -30,7 +30,7 @@ SECRET_KEY = "django-insecure-rvt_u0uc(p-c@hbj(hm)o^7(ja%l@tf^v1k1dsadm6(2m+osjv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -153,11 +153,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ORIGIN_ALLOW_ALL = False
-CORS_ORIGIN_WHITELIST = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-]
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_WHITELIST = [
+#     "http://localhost:5173",
+#     "http://localhost:3000",
+#     "*",
+# ]
 
 AUTH_USER_MODEL = "users.ParkomateUser"
 

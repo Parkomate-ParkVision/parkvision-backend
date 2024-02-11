@@ -45,6 +45,6 @@ class SendEmailThread(threading.Thread):
 
 
 @app.task(bind=True)
-def send_email(self, receiver, subject, message, cc='', *args, **kwargs):
+def send_email(receiver, subject, message, cc='', *args, **kwargs):
     SendEmailThread(receiver=receiver, subject=subject,
                     message=message, cc=cc).start()

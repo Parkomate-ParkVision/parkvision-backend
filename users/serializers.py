@@ -13,7 +13,7 @@ class ParkomateUserSerializer(ModelSerializer):
 
 
 class RegisterSerializer(ModelSerializer):
-    password = CharField(write_only=True)
+    password = CharField()
 
     class Meta:
         model = ParkomateUser
