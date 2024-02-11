@@ -7,6 +7,7 @@ from users.models import ParkomateUser
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    ownerName = serializers.SerializerMethodField()
     class Meta:
         model = Organization
         fields = [
@@ -19,10 +20,10 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'filled_slots',
             'createdAt',
             'updatedAt',
-            'isActive'
+            'isActive',
         ]
-        get_fields = fields
-        list_fields = fields
+        get_fields = fields.append('ownerName')
+        list_fields = fields.append('ownerName')
     
     def create(self, validated_data):
         user = self.context['request'].user
@@ -31,6 +32,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
         validated_data['owner'] = owner
         return super().create(validated_data)
 
+    def get_ownerName(self, obj):
+        return obj.owner.name
 
 class GateSerializer(serializers.ModelSerializer):
     organizationName = serializers.SerializerMethodField()

@@ -7,11 +7,13 @@ from vehicle.serializers import (
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 
 
 class VehicleView(ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
+    pagination_class = PageNumberPagination
     # permission_classes = [IsAuthenticated]
 
     def list(self, request):

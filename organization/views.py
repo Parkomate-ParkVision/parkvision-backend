@@ -9,16 +9,21 @@ from organization.serializers import (
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 
 
 class OrganizationView(ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    # permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated]
 
     def list(self, request):
         organizations = Organization.objects.all()
-        serializer = OrganizationSerializer(organizations, many=True)
+        page = self.paginate_queryset(organizations)
+        if page is not None:
+            serializer = OrganizationSerializer(page, context={'request': request}, many=True)
+            return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
@@ -31,6 +36,8 @@ class OrganizationView(ModelViewSet):
             return Response({"error": "You are not authorized to view this organization."})
 
     def create(self, request):
+        user = request.user
+        request.data.update({'owner': user.id})
         serializer = OrganizationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
@@ -79,6 +86,7 @@ class OrganizationView(ModelViewSet):
 class GateView(ModelViewSet):
     queryset = Gate.objects.all()
     serializer_class = GateSerializer
+    pagination_class = PageNumberPagination
     # permission_classes = [IsAuthenticated]
 
     def list(self, request):
@@ -87,11 +95,11 @@ class GateView(ModelViewSet):
         for gate in gates:
             if gate.organization.owner != user:
                 gates.remove(gate)
-        serializer = GateSerializer(gates, many=True)
-        if serializer.is_valid():
-            return Response(serializer.data)
-        else:
-            return Response(serializer.errors)
+        page = self.paginate_queryset(gates)
+        if page is not None:
+            serializer = GateSerializer(page, context={'request': request}, many=True)
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         gate = Gate.objects.get(id=pk)

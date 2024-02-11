@@ -10,11 +10,13 @@ from .serializers import FloorSerializer, SectionSerializer, LocationSerializer
 from rest_framework import viewsets
 from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 
 
 class FloorViewSet(viewsets.ModelViewSet):
     queryset = Floor.objects.all()
     serializer_class = FloorSerializer
+    pagination_class = PageNumberPagination
     # permission_classes = [IsAuthenticated]
 
     def list(self, request):
@@ -38,6 +40,7 @@ class FloorViewSet(viewsets.ModelViewSet):
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
+    pagination_class = PageNumberPagination
     # permission_classes = [IsAuthenticated]
 
     def list(self, request):
@@ -61,6 +64,7 @@ class SectionViewSet(viewsets.ModelViewSet):
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
+    pagination_class = PageNumberPagination
     # permission_classes = [IsAuthenticated]
 
     def list(self, request):
