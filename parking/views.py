@@ -1,76 +1,160 @@
-from django.shortcuts import render
-
-# Create your views here.
-from django.shortcuts import render
 from rest_framework.response import Response
-
-from .models import Floor, Section, Location
-from .serializers import FloorSerializer, SectionSerializer, LocationSerializer
+from .models import Parking, CCTV
+from organization.models import Organization
+from .serializers import ParkingSerializer, CCTVSerializer
 
 from rest_framework import viewsets
-from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 
 
-class FloorViewSet(viewsets.ModelViewSet):
-    queryset = Floor.objects.all()
-    serializer_class = FloorSerializer
+class ParkingView(viewsets.ModelViewSet):
+    queryset = Parking.objects.all()
+    serializer_class = ParkingSerializer
+    pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        queryset = Floor.objects.filter(isActive=True)
-        serializer = FloorSerializer(queryset, many=True)
+        queryset = Parking.objects.filter(isActive=True)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = ParkingSerializer(queryset, many=True)
+            return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        parking = Parking.objects.get(id=pk)
+        user = request.user
+        if parking.organization.owner == user:
+            serializer = ParkingSerializer(parking)
+            return Response(serializer.data)
+        else:
+            return Response({"error": "You are not authorized to view this parking."})
 
-    def update(self, request, *args, **kwargs):
-        return Response({'message': 'Floor cannot be updated! Delete and create a new one instead.'})
+    def create(self, request):
+        user = request.user
+        organizationId = request.data['organization']
+        organization = Organization.objects.get(id=organizationId)
+        if organizationId is None:
+            return Response({"error": "Organization is required."})
+        if organization.owner != user:
+            return Response({"error": "You are not authorized to create parking for this organization."})
+        if user.is_active == False:
+            return Response({"error": "Your account is not active."})
+        serializer = ParkingSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
+    
+    def update(self, request, pk=None):
+        parking = Parking.objects.get(id=pk)
+        user = request.user
+        if parking.organization.owner == user:
+            serializer = ParkingSerializer(parking, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            else:
+                return Response(serializer.errors)
+        else:
+            return Response({"error": "You are not authorized to update this parking."})
+        
+    def destroy(self, request, pk=None):
+        parking = Parking.objects.get(id=pk)
+        user = request.user
+        if parking.organization.owner == user:
+            parking.delete()
+            return Response({"success": "Parking deleted successfully."})
+        else:
+            return Response({"error": "You are not authorized to delete this parking."})
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response({'message': 'Floor cannot be updated! Delete and create a new one instead.'})
+    def partial_update(self, request, pk=None):
+        parking = Parking.objects.get(id=pk)
+        user = request.user
+        if parking.organization.owner == user:
+            serializer = ParkingSerializer(parking, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            else:
+                return Response(serializer.errors)
+        else:
+            return Response({"error": "You are not authorized to update this parking."})
 
-    def destroy(self, request, *args, **kwargs):
-        floor = Floor.objects.get(number=kwargs['pk'])
-        floor.isActive = False
-        floor.save()
-        return Response({'message': 'Floor was deleted successfully!'})
 
-
-class SectionViewSet(viewsets.ModelViewSet):
-    queryset = Section.objects.all()
-    serializer_class = SectionSerializer
+class CCTVView(viewsets.ModelViewSet):
+    queryset = CCTV.objects.all()
+    serializer_class = CCTVSerializer
+    pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        queryset = Section.objects.filter(isActive=True)
-        serializer = SectionSerializer(queryset, many=True)
+        queryset = CCTV.objects.filter(isActive=True)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = CCTVSerializer(queryset, many=True)
+            return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        cctv = CCTV.objects.get(id=pk)
+        user = request.user
+        if cctv.parking.organization.owner == user:
+            serializer = CCTVSerializer(cctv)
+            return Response(serializer.data)
+        else:
+            return Response({"error": "You are not authorized to view this CCTV."})
 
-    def update(self, request, *args, **kwargs):
-        return Response({'message': 'Section cannot be updated! Delete and create a new one instead!'})
+    def create(self, request):
+        user = request.user
+        parkingId = request.data['parking']
+        parking = Parking.objects.get(id=parkingId)
+        if parkingId is None:
+            return Response({"error": "Parking is required."})
+        if parking.organization.owner != user:
+            return Response({"error": "You are not authorized to create CCTV for this parking."})
+        if user.is_active == False:
+            return Response({"error": "Your account is not active."})
+        serializer = CCTVSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
+    
+    def update(self, request, pk=None):
+        cctv = CCTV.objects.get(id=pk)
+        user = request.user
+        if cctv.parking.organization.owner == user:
+            serializer = CCTVSerializer(cctv, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            else:
+                return Response(serializer.errors)
+        else:
+            return Response({"error": "You are not authorized to update this CCTV."})
+        
+    def destroy(self, request, pk=None):
+        cctv = CCTV.objects.get(id=pk)
+        user = request.user
+        if cctv.parking.organization.owner == user:
+            cctv.delete()
+            return Response({"success": "CCTV deleted successfully."})
+        else:
+            return Response({"error": "You are not authorized to delete this CCTV."})
 
-    def partial_update(self, request, *args, **kwargs):
-        return Response({'message': 'Section cannot be updated! Delete and create a new one instead!'})
-
-    def destroy(self, request, *args, **kwargs):
-        section = Section.objects.get(name=kwargs['pk'])
-        section.is_active = False
-        section.save()
-        return Response({'message': 'Section was deleted successfully!'})
-
-
-class LocationViewSet(viewsets.ModelViewSet):
-    queryset = Location.objects.all()
-    serializer_class = LocationSerializer
-    permission_classes = [IsAuthenticated]
-
-    def list(self, request):
-        queryset = Location.objects.filter(isActive=True)
-        serializer = LocationSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def destroy(self, request, *args, **kwargs):
-        jsonData = JSONParser().parse(request)
-        location = Location.objects.get(pk=jsonData['pk'])
-        location.isActive = False
-        location.save()
-        return Response({'message': 'Location was deleted successfully!'})
+    def partial_update(self, request, pk=None):
+        cctv = CCTV.objects.get(id=pk)
+        user = request.user
+        if cctv.parking.organization.owner == user:
+            serializer = CCTVSerializer(cctv, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            else:
+                return Response(serializer.errors)
+        else:
+            return Response({"error": "You are not authorized to update this CCTV."})

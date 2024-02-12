@@ -27,7 +27,8 @@ class ParkomateUserRegisterView(GenericAPIView):
 
     def post(self, request):
         user = request.data
-        user['password'] = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
+        if user['privilege'] == 0:
+            user['password'] = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -36,9 +37,37 @@ class ParkomateUserRegisterView(GenericAPIView):
         user_data['id'] = user_id
         user_data['password'] = user['password']
         send_email(
-            user['email'],
-            'Parkomate Account Password',
-            f'Your password is {user["password"]}. Login to your account on the ParkVision Dashboard',
+            receiver=user['email'],
+            subject='Parkomate Account Password',
+            message=f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta http-equiv="X-UA-Compatible" content="IE=edge">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Welcome to ParkVision</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; text-align: center;">
+                <div class="container" style="max-width: 600px; margin: 0 auto; background-color: #f4f2ee; padding: 25px; border-radius: 10px;">
+                    <h1 style="margin-top: 2.5rem; color: #8DBF41;">Welcome to ParkVision!</h1>
+                    <p style="margin-top: 1.25rem; font-size: 16px; line-height: 1.5;">
+                        Dear user, welcome to ParkVision, a dashboard for managing and analyzing your organization's parking needs.
+                    </p>
+                    <p style="margin-top: 1.25rem; font-size: 16px; line-height: 1.5;">
+                        Here are your credentials:
+                    </p>
+                    <p style="font-size: 16px; line-height: 1.5;">
+                        Email: <strong>{user['email']}</strong><br>
+                        Password: <strong>{user['password']}</strong>
+                    </p>
+                    <p style="margin-top: 1.25rem; font-size: 16px; line-height: 1.5;">
+                        Login to your Parkomate dashboard and start managing your organization's parking needs!
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
         )
         return Response(user_data, status=status.HTTP_201_CREATED)
 

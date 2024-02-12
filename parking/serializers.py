@@ -1,17 +1,22 @@
 from rest_framework import serializers
-from .models import Floor, Section, Location
+from .models import Parking, CCTV
 
-class FloorSerializer(serializers.ModelSerializer):
+
+class ParkingSerializer(serializers.ModelSerializer):
+    organizationName = serializers.SerializerMethodField()
     class Meta:
-        model = Floor
-        fields = ['number', 'organization']
+        model = Parking
+        fields = ['id', 'organization', 'name', 'totalSlots', 'availableSlots', 'isActive', 'organizationName']
     
-class SectionSerializer(serializers.ModelSerializer):
+    def get_organizationName(self, obj):
+        return obj.organization.name
+    
+    
+class CCTVSerializer(serializers.ModelSerializer):
+    parkingName = serializers.SerializerMethodField()
     class Meta:
-        model = Section
-        fields = ['name', 'floor']
-
-class LocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Location
-        fields = ['id', 'name', 'section', 'isOccupied', 'isAllocated', 'isActive']
+        model = CCTV
+        fields = ['id', 'parking', 'name', 'url', 'isActive', 'parkingName']
+    
+    def get_parkingName(self, obj):
+        return obj.parking.name

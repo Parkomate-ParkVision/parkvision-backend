@@ -2,32 +2,24 @@ from django.db import models
 from organization.models import Organization
 import uuid
 
-
-class Floor(models.Model):
-    number = models.IntegerField(primary_key=True, unique=True, auto_created=True, default=1)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+class Parking(models.Model):
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='parkings')
+    name = models.CharField(max_length=255)
+    totalSlots = models.IntegerField(default=0)
+    availableSlots = models.IntegerField(default=0)
     isActive = models.BooleanField(default=True)
 
     def __str__(self):
-        return "Floor " + str(self.number)
+        return f"{self.organization} - {self.name}"
+    
 
-
-class Section(models.Model):
-    name = models.CharField(max_length=100, primary_key=True, unique=True, auto_created=True, default='A')
-    floor = models.ForeignKey(Floor, related_name='sections', on_delete=models.CASCADE)
+class CCTV(models.Model):
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4)
+    parking = models.ForeignKey(Parking, on_delete=models.CASCADE, related_name='cctvs')
+    name = models.CharField(max_length=255)
+    url = models.URLField(null=True, blank=True)
     isActive = models.BooleanField(default=True)
 
     def __str__(self):
-        return "Floor " + str(self.floor.number) + ' - Section ' + self.name
-
-
-class Location(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, auto_created=True, default=uuid.uuid4)
-    name = models.CharField(max_length=100, blank=True, null=True)
-    section = models.ForeignKey(Section, to_field='name', related_name='locations', on_delete=models.CASCADE)
-    isOccupied = models.BooleanField(default=False)
-    isAllocated = models.BooleanField(default=False)
-    isActive = models.BooleanField(default=True)
-
-    def __str__(self):
-        return str(self.section.floor.number) + '-' + str(self.section.name) + '-' + str(self.pk)
+        return f"{self.parking.name} - {self.name}"

@@ -1,25 +1,25 @@
+# -*- coding: utf-8 -*-
 from django.contrib import admin
-from .models import Floor, Section, Location
-# Register your models here.
+
+from .models import Parking, CCTV
 
 
-class FloorAdmin(admin.ModelAdmin):
-    list_display = ('number', 'organization', 'isActive')
+@admin.register(Parking)
+class ParkingAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'organization',
+        'name',
+        'totalSlots',
+        'availableSlots',
+        'isActive',
+    )
     list_filter = ('organization', 'isActive')
-    search_fields = ('number', 'organization')
+    search_fields = ('name',)
 
 
-class SectionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'floor', 'isActive')
-    list_filter = ('floor', 'isActive')
-    search_fields = ('name', 'floor')
-
-
-class LocationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'section', 'isOccupied', 'isAllocated', 'isActive')
-    list_filter = ('section', 'isOccupied', 'isAllocated', 'isActive')
-    search_fields = ('id', 'name', 'section')
-
-admin.site.register(Floor)
-admin.site.register(Section)
-admin.site.register(Location)
+@admin.register(CCTV)
+class CCTVAdmin(admin.ModelAdmin):
+    list_display = ('id', 'parking', 'name', 'url', 'isActive')
+    list_filter = ('parking', 'isActive')
+    search_fields = ('name',)

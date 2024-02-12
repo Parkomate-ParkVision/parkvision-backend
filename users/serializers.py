@@ -17,7 +17,7 @@ class RegisterSerializer(ModelSerializer):
 
     class Meta:
         model = ParkomateUser
-        fields = ['name', 'email', 'phone', 'password']
+        fields = ['name', 'email', 'phone', 'password', 'privilege']
 
     def create(self, validated_data):
         return ParkomateUser.objects.create_user(**validated_data)
