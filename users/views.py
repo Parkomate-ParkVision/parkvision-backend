@@ -2,7 +2,6 @@ from users.models import ParkomateUser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAuthenticated
 from users.serializers import (
     LoginSerializer,
     RegisterSerializer,
@@ -13,10 +12,18 @@ from rest_framework import status
 from utils.emails import send_email
 import random
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import BaseAuthentication
+
+class NoAuthentication(BaseAuthentication):
+    def authenticate(self, request):
+        return None
 
 class ParkomateUserRegisterView(GenericAPIView):
     serializer_class = RegisterSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [AllowAny]
+    authentication_classes = [NoAuthentication]
 
     def post(self, request):
         user = request.data
@@ -39,6 +46,8 @@ class ParkomateUserRegisterView(GenericAPIView):
 class ParkomateUserLoginView(GenericAPIView):
     serializer_class = LoginSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [AllowAny]
+    authentication_classes = [NoAuthentication]
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -49,7 +58,7 @@ class ParkomateUserLoginView(GenericAPIView):
 class ParkomateUserLogoutView(GenericAPIView):
     serializer_class = LogoutSerializer
     pagination_class = PageNumberPagination
-    # permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -62,3 +71,4 @@ class ParkomateUserView(ModelViewSet):
     queryset = ParkomateUser.objects.all()
     serializer_class = ParkomateUserSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated]

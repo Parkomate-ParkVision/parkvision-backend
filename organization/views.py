@@ -87,7 +87,7 @@ class GateView(ModelViewSet):
     queryset = Gate.objects.all()
     serializer_class = GateSerializer
     pagination_class = PageNumberPagination
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def list(self, request):
         gates = Gate.objects.all()
