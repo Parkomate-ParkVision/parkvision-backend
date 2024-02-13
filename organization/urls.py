@@ -5,11 +5,13 @@ from rest_framework.routers import DefaultRouter
 from organization.views import (
     OrganizationView,
     GateView,
+    AdminView
 )
 
 router = DefaultRouter()
 router.register('organizations', OrganizationView, basename='organizations')
 router.register('gates', GateView, basename='gates')
+router.register('admins', AdminView, basename='admins')
 
 
 class HomeView(APIView):

@@ -8,11 +8,13 @@ from users.models import ParkomateUser
 
 class OrganizationSerializer(serializers.ModelSerializer):
     ownerName = serializers.SerializerMethodField()
+    adminDetails = serializers.SerializerMethodField()
     class Meta:
         model = Organization
         fields = [
             'id',
             'name',
+            'owner',
             'address',
             'entry_gates',
             'exit_gates',
@@ -21,16 +23,26 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'createdAt',
             'updatedAt',
             'isActive',
+            'admins',
+            'adminDetails',
         ]
         get_fields = fields.append('ownerName')
         list_fields = fields.append('ownerName')
-    
-    def create(self, validated_data):
-        user = self.context['request'].user
-        print(user)
-        owner = ParkomateUser.objects.get(id=user.id)
-        validated_data['owner'] = owner
-        return super().create(validated_data)
+
+    def get_adminDetails(self, obj):
+        admins = obj.admins
+        final_data = []
+        for count, email in enumerate(admins):
+            data = {}
+            data['email'] = email
+            adminObj = ParkomateUser.objects.filter(email=email)
+            if adminObj.exists():
+                adminObj = adminObj.first()
+                data['phone'] = str(adminObj.phone)
+                data['name'] = str(adminObj.name)
+                data['id'] = count
+            final_data.append(data)
+        return final_data
 
     def get_ownerName(self, obj):
         return obj.owner.name

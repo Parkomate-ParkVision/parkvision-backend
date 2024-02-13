@@ -27,8 +27,7 @@ class ParkomateUserRegisterView(GenericAPIView):
 
     def post(self, request):
         user = request.data
-        if user['privilege'] == 0:
-            user['password'] = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
+        user['password'] = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -62,7 +61,7 @@ class ParkomateUserRegisterView(GenericAPIView):
                         Password: <strong>{user['password']}</strong>
                     </p>
                     <p style="margin-top: 1.25rem; font-size: 16px; line-height: 1.5;">
-                        Login to your Parkomate dashboard and start managing your organization's parking needs!
+                        Login to your ParkVision dashboard and start managing your organization's parking needs!
                     </p>
                 </div>
             </body>
