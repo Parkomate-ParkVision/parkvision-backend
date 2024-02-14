@@ -9,8 +9,8 @@ class Vehicle(models.Model):
     cropped_image = models.URLField(blank=True, null=True, unique=True)
     vehicle_image = models.URLField(blank=True, null=True, unique=True)
     prediction = models.CharField(max_length=255, blank=True, null=True)
-    entry_gate = models.OneToOneField(Gate, on_delete=models.CASCADE, related_name='entry_vehicle', blank=True, null=True)
-    exit_gate = models.OneToOneField(Gate, on_delete=models.CASCADE, related_name='exit_vehicke', blank=True, null=True)
+    entry_gate = models.ForeignKey(Gate, on_delete=models.CASCADE, related_name='entry_vehicle', blank=True, null=True)
+    exit_gate = models.ForeignKey(Gate, on_delete=models.CASCADE, related_name='exit_vehicke', blank=True, null=True)
     entry_time = models.DateTimeField(blank=True, null=True)
     exit_time = models.DateTimeField(blank=True, null=True)
 

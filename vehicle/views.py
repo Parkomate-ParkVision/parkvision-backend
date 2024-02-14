@@ -21,12 +21,9 @@ class VehicleView(ModelViewSet):
         user = request.user
         for vehicle in vehicles:
             if vehicle.entry_gate.organization.owner != user:
-                vehicles.remove(vehicle)
+                vehicles = vehicles.exclude(id=vehicle.id)
         serializer = VehicleSerializer(vehicles, many=True)
-        if serializer.is_valid():
-            return Response(serializer.data)
-        else:
-            return Response(serializer.errors)
+        return Response(serializer.data, status=200)
 
     def retrieve(self, request, pk=None):
         vehicle = Vehicle.objects.get(id=pk)
