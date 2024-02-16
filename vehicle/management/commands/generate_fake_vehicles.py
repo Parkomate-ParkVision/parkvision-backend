@@ -18,6 +18,7 @@ class Command(BaseCommand):
                 vehicle_image = fake.image_url()
                 prediction = fake.word()
                 entry_time = fake.date_time_this_year()
+                exit_time = fake.date_time_this_year()
 
                 vehicle = Vehicle.objects.create(
                     number_plate=number_plate,
@@ -25,7 +26,8 @@ class Command(BaseCommand):
                     vehicle_image=vehicle_image,
                     prediction=prediction,
                     entry_gate=gate,
-                    entry_time=entry_time
+                    entry_time=entry_time,
+                    exit_time=exit_time
                 )
 
                 self.stdout.write(self.style.SUCCESS(f'Fake vehicle created for gate: {gate.id}'))

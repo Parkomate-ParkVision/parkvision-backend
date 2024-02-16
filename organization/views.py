@@ -6,6 +6,8 @@ from organization.serializers import (
     OrganizationSerializer,
     GateSerializer
 )
+from vehicle.models import Vehicle
+from vehicle.serializers import VehicleSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +17,21 @@ from users.serializers import ParkomateUserSerializer
 from django.db import transaction
 import random
 from utils.emails import send_email
+from rest_framework.views import APIView
+from rest_framework import status
+
+
+class DashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk=None):
+        user = request.user
+        organization = Organization.objects.get(id=pk)
+        vehicles = Vehicle.objects.filter(entry_gate__organization=organization)
+        if user.email not in organization.admins or organization.owner != user:
+            return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            daily_entries = 
 
 
 class OrganizationView(ModelViewSet):
