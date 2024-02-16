@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from faker import Faker
 from organization.models import Gate
 from vehicle.models import Vehicle
+import random
 
 fake = Faker()
 
@@ -19,6 +20,8 @@ class Command(BaseCommand):
                 prediction = fake.word()
                 entry_time = fake.date_time_this_year()
                 exit_time = fake.date_time_this_year()
+                randint = random.randint(0, 2)
+                vehicle_type = ['economy', 'midrange', 'premium'][randint]
 
                 vehicle = Vehicle.objects.create(
                     number_plate=number_plate,
@@ -27,7 +30,8 @@ class Command(BaseCommand):
                     prediction=prediction,
                     entry_gate=gate,
                     entry_time=entry_time,
-                    exit_time=exit_time
+                    exit_time=exit_time,
+                    vehicle_type=vehicle_type
                 )
 
                 self.stdout.write(self.style.SUCCESS(f'Fake vehicle created for gate: {gate.id}'))

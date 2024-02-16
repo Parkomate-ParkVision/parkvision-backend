@@ -5,7 +5,8 @@ from rest_framework.routers import DefaultRouter
 from organization.views import (
     OrganizationView,
     GateView,
-    AdminView
+    AdminView,
+    DashboardView
 )
 
 router = DefaultRouter()
@@ -22,10 +23,12 @@ class HomeView(APIView):
                 '/organizations/',
                 '/gates/',
                 '/admins/',
+                '/dashboard/'
             ]
         })
 
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),
+    path('dashboard/<str:pk>', DashboardView.as_view(), name="dashboard")
 ] + router.urls

@@ -4,7 +4,13 @@ from organization.models import Gate
 
 
 class Vehicle(models.Model):
+    VEHICLE_TYPE = (
+        ('economy', 'Economy'),
+        ('midrange', 'Midrange'),
+        ('premium', 'Premium')
+    )
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    vehicle_type = models.CharField(max_length=255, choices=VEHICLE_TYPE, blank=True, null=True)
     number_plate = models.CharField(max_length=255, blank=True, null=True, unique=True)
     cropped_image = models.URLField(blank=True, null=True, unique=True)
     vehicle_image = models.URLField(blank=True, null=True, unique=True)
@@ -16,3 +22,9 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+    class Meta:
+        verbose_name = 'Vehicle'
+        verbose_name_plural = 'Vehicles'
+        db_table = 'vehicle'
+        ordering = ['-entry_time']
