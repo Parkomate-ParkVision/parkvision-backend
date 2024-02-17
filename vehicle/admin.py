@@ -11,11 +11,12 @@ class VehicleAdmin(admin.ModelAdmin):
         'number_plate',
         'cropped_image',
         'vehicle_image',
-        'prediction',
         'entry_gate',
         'exit_gate',
         'entry_time',
         'exit_time',
+        'verified_by',
+        'verified_number_plate'
     )
     list_filter = ('entry_time', 'exit_time')
     raw_id_fields = ('entry_gate', 'exit_gate')

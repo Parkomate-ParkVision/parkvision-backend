@@ -6,8 +6,10 @@ from vehicle.serializers import (
 )
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from rest_framework import status
 
 
 class VehicleView(ModelViewSet):
@@ -30,12 +32,9 @@ class VehicleView(ModelViewSet):
         user = request.user
         if vehicle.entry_gate.organization.owner == user:
             serializer = VehicleSerializer(vehicle)
-            if serializer.is_valid():
-                return Response(serializer.data)
-            else:
-                return Response(serializer.errors)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to view this vehicle."})
+            return Response({"error": "You are not authorized to view this vehicle."}, status=status.HTTP_403_FORBIDDEN)
 
     def create(self, request):
         serializer = VehicleSerializer(data=request.data)
@@ -80,3 +79,24 @@ class VehicleView(ModelViewSet):
                 return Response(serializer.errors)
         else:
             return Response({"error": "You are not authorized to update this vehicle."})
+        
+
+class VerificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk=None, number_plate=None):
+        try:
+            vehicle = Vehicle.objects.get(id=pk)
+            user = request.user
+            if vehicle.entry_gate.organization.owner == user or user.email in vehicle.entry_gate.organization.admins:
+                vehicle.verified_by = user
+                if number_plate is not None:
+                    vehicle.verified_number_plate = number_plate
+                if number_plate is None:
+                    vehicle.verified_number_plate = vehicle.number_plate
+                vehicle.save()
+                return Response({"success": "Vehicle verified successfully."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "You are not authorized to verify this vehicle."}, status=status.HTTP_403_FORBIDDEN)
+        except Vehicle.DoesNotExist:
+            return Response({"error": "Vehicle not found."}, status=status.HTTP_404_NOT_FOUND)

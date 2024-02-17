@@ -3,7 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from vehicle.views import (
-    VehicleView
+    VehicleView,
+    VerificationView
 )
 
 router = DefaultRouter()
@@ -16,10 +17,12 @@ class HomeView(APIView):
             'message': 'Welcome to Parkomate Main API',
             'endpoints': [
                 '/vehicles/',
+                '/verify-vehicle/<str:pk>/<str:number_plate>/',
             ]
         })
 
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),
+    path('verify-vehicle/<str:pk>/<str:number_plate>/', VerificationView.as_view(), name="verify-vehicle")
 ] + router.urls
