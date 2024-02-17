@@ -6,6 +6,7 @@ from vehicle.serializers import (
 )
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
@@ -19,13 +20,21 @@ class VehicleView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        vehicles = Vehicle.objects.all()
-        user = request.user
-        for vehicle in vehicles:
-            if vehicle.entry_gate.organization.owner != user:
-                vehicles = vehicles.exclude(id=vehicle.id)
-        serializer = VehicleSerializer(vehicles, many=True)
-        return Response(serializer.data, status=200)
+        try:
+            vehicles = Vehicle.objects.all()
+            user = request.user
+            for vehicle in vehicles:
+                if vehicle.entry_gate.organization.owner != user:
+                    vehicles = vehicles.exclude(id=vehicle.id)
+            page = self.paginate_queryset(vehicles)
+            if page is not None:
+                serializer = VehicleSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            else:
+                serializer = VehicleSerializer(vehicles, many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        except Vehicle.DoesNotExist:
+            return Response({"error": "No vehicles found."}, status=status.HTTP_404_NOT_FOUND)
 
     def retrieve(self, request, pk=None):
         vehicle = Vehicle.objects.get(id=pk)
@@ -81,6 +90,28 @@ class VehicleView(ModelViewSet):
             return Response({"error": "You are not authorized to update this vehicle."})
         
 
+class UnverifiedVehicleView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+    def list(self, request):
+        user = request.user
+        try:
+            vehicles = Vehicle.objects.filter(verified_by=None)
+            for vehicle in vehicles:
+                if vehicle.entry_gate.organization.owner != user and user.email not in vehicle.entry_gate.organization.admins:
+                    vehicles = vehicles.exclude(id=vehicle.id)
+            page = self.paginate_queryset(vehicles)
+            if page is not None:
+                serializer = VehicleSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            else:
+                serializer = VehicleSerializer(vehicles, many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        except Vehicle.DoesNotExist:
+            return Response({"error": "No unverified vehicles found."}, status=status.HTTP_404_NOT_FOUND)
+
+
 class VerificationView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -92,7 +123,7 @@ class VerificationView(APIView):
                 vehicle.verified_by = user
                 if number_plate is not None:
                     vehicle.verified_number_plate = number_plate
-                if number_plate is None:
+                if number_plate == "null":
                     vehicle.verified_number_plate = vehicle.number_plate
                 vehicle.save()
                 return Response({"success": "Vehicle verified successfully."}, status=status.HTTP_200_OK)

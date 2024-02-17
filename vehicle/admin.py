@@ -16,7 +16,8 @@ class VehicleAdmin(admin.ModelAdmin):
         'entry_time',
         'exit_time',
         'verified_by',
-        'verified_number_plate'
+        'verified_number_plate',
+        'parking',
     )
     list_filter = ('entry_time', 'exit_time')
     raw_id_fields = ('entry_gate', 'exit_gate')

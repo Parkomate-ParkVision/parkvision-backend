@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from faker import Faker
 from organization.models import Gate
+from parking.models import Parking
 from vehicle.models import Vehicle
 import random
 
@@ -17,21 +18,21 @@ class Command(BaseCommand):
                 number_plate = "".join(fake.random_letters(length=2)).upper() + str(fake.random_number(digits=4))
                 cropped_image = fake.image_url()
                 vehicle_image = fake.image_url()
-                prediction = fake.word()
                 entry_time = fake.date_time_this_year()
                 exit_time = fake.date_time_this_year()
                 randint = random.randint(0, 2)
                 vehicle_type = ['economy', 'midrange', 'premium'][randint]
+                parking = random.choice(Parking.objects.all())
 
                 vehicle = Vehicle.objects.create(
                     number_plate=number_plate,
                     cropped_image=cropped_image,
                     vehicle_image=vehicle_image,
-                    prediction=prediction,
                     entry_gate=gate,
                     entry_time=entry_time,
                     exit_time=exit_time,
-                    vehicle_type=vehicle_type
+                    vehicle_type=vehicle_type,
+                    parking=parking
                 )
 
                 self.stdout.write(self.style.SUCCESS(f'Fake vehicle created for gate: {gate.id}'))

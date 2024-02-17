@@ -8,6 +8,7 @@ class VehicleSerializer(serializers.ModelSerializer):
     admin_name = serializers.SerializerMethodField()
     admin_email = serializers.SerializerMethodField()
     admin_organization = serializers.SerializerMethodField()
+    parking_name = serializers.SerializerMethodField()
     class Meta:
         model = Vehicle
         fields = [
@@ -23,7 +24,9 @@ class VehicleSerializer(serializers.ModelSerializer):
             'verified_number_plate',
             'admin_name',
             'admin_email',
-            'admin_organization'
+            'admin_organization',
+            'parking',
+            'parking_name',
         ]
         get_fields = fields
         post_fields = fields
@@ -36,3 +39,6 @@ class VehicleSerializer(serializers.ModelSerializer):
     
     def get_admin_organization(self, obj):
         return obj.entry_gate.organization.name
+    
+    def get_parking_name(self, obj):
+        return obj.parking.name if obj.parking else "Not Parked"

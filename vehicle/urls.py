@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from vehicle.views import (
     VehicleView,
-    VerificationView
+    VerificationView,
+    UnverifiedVehicleView
 )
 
 router = DefaultRouter()
@@ -18,11 +19,13 @@ class HomeView(APIView):
             'endpoints': [
                 '/vehicles/',
                 '/verify-vehicle/<str:pk>/<str:number_plate>/',
+                '/unverified-vehicles/',
             ]
         })
 
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),
-    path('verify-vehicle/<str:pk>/<str:number_plate>/', VerificationView.as_view(), name="verify-vehicle")
+    path('verify-vehicle/<str:pk>/<str:number_plate>/', VerificationView.as_view(), name="verify-vehicle"),
+    path('unverified-vehicles/', UnverifiedVehicleView.as_view(), name="unverified-vehicles"),
 ] + router.urls
