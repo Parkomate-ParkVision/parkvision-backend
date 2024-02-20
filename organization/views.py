@@ -217,7 +217,7 @@ class GateView(ModelViewSet):
         gates = Gate.objects.all()
         user = request.user
         for gate in gates:
-            if gate.organization.owner != user:
+            if gate.organization.owner != user and user.email not in gate.organization.admins:
                 gates.remove(gate)
         page = self.paginate_queryset(gates)
         if page is not None:
@@ -230,7 +230,7 @@ class GateView(ModelViewSet):
         gate = Gate.objects.get(id=pk)
         organization = gate.organization
         user = request.user
-        if organization.owner == user:
+        if organization.owner == user or user.email in organization.admins:
             serializer = GateSerializer(gate)
             if serializer.is_valid():
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -251,7 +251,7 @@ class GateView(ModelViewSet):
         gate = Gate.objects.get(id=pk)
         organization = gate.organization
         user = request.user
-        if organization.owner == user:
+        if organization.owner == user or user.email in organization.admins:
             serializer = GateSerializer(gate, data=request.data)
             if serializer.is_valid():
                 serializer.save()
@@ -275,7 +275,7 @@ class GateView(ModelViewSet):
         gate = Gate.objects.get(id=pk)
         organization = gate.organization
         user = request.user
-        if organization.owner == user:
+        if organization.owner == user or user.email in organization.admins:
             serializer = GateSerializer(gate, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
