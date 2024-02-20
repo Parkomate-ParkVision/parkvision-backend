@@ -15,9 +15,11 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import BaseAuthentication
 
+
 class NoAuthentication(BaseAuthentication):
     def authenticate(self, request):
         return None
+
 
 class ParkomateUserRegisterView(GenericAPIView):
     serializer_class = RegisterSerializer
@@ -27,7 +29,8 @@ class ParkomateUserRegisterView(GenericAPIView):
 
     def post(self, request):
         user = request.data
-        user['password'] = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
+        user['password'] = ''.join(random.choices(
+            'abcdefghijklmnopqrstuvwxyz1234567890', k=8))
         serializer = self.serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()

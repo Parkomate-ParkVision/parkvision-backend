@@ -4,6 +4,9 @@ from vehicle.models import (
 from vehicle.serializers import (
     VehicleSerializer
 )
+from vehicle.permissions import (
+    VehiclePermission
+)
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import ListAPIView
@@ -17,15 +20,19 @@ class VehicleView(ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     pagination_class = PageNumberPagination
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, VehiclePermission]
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         try:
             vehicles = Vehicle.objects.all()
+            isPaginated = request.query_params.get('isPaginated')
             user = request.user
             for vehicle in vehicles:
                 if vehicle.entry_gate.organization.owner != user:
                     vehicles = vehicles.exclude(id=vehicle.id)
+            if isPaginated == "false" or isPaginated is None:
+                serializer = VehicleSerializer(vehicles, many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             page = self.paginate_queryset(vehicles)
             if page is not None:
                 serializer = VehicleSerializer(page, many=True)
@@ -49,9 +56,9 @@ class VehicleView(ModelViewSet):
         serializer = VehicleSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
         vehicle = Vehicle.objects.get(id=pk)
@@ -60,20 +67,20 @@ class VehicleView(ModelViewSet):
             serializer = VehicleSerializer(vehicle, data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to update this vehicle."})
+            return Response({"error": "You are not authorized to update this vehicle."}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, pk=None):
         vehicle = Vehicle.objects.get(id=pk)
         user = request.user
         if vehicle.entry_gate.organization.owner == user:
             vehicle.delete()
-            return Response({"success": "Vehicle deleted successfully."})
+            return Response({"success": "Vehicle deleted successfully."}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to delete this vehicle."})
+            return Response({"error": "You are not authorized to delete this vehicle."}, status=status.HTTP_403_FORBIDDEN)
 
     def partial_update(self, request, pk=None):
         vehicle = Vehicle.objects.get(id=pk)
@@ -83,12 +90,12 @@ class VehicleView(ModelViewSet):
                 vehicle, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to update this vehicle."})
-        
+            return Response({"error": "You are not authorized to update this vehicle."}, status=status.HTTP_403_FORBIDDEN)
+
 
 class UnverifiedVehicleView(ListAPIView):
     permission_classes = [IsAuthenticated]

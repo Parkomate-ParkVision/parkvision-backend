@@ -31,6 +31,7 @@ class LoginSerializer(serializers.ModelSerializer):
     def get_tokens(self, obj):
         user = ParkomateUser.objects.get(email=obj['email'])
         return {
+            'privilege': user.privilege,
             'refresh': user.tokens()['refresh'],
             'access': user.tokens()['access']
         }
