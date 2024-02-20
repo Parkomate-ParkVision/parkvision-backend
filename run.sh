@@ -1,5 +1,5 @@
 #!/bin/bash
-modes="  start-dev\n  stop-dev\n  interactive-dev\n  check-syntax\n"
+modes="  start-dev\n  stop-dev\n  interactive-dev\n  check-syntax\n  generate-data\n"
 mode=$1
 project_name="parkomate"
 
@@ -19,6 +19,8 @@ elif [ "$mode" == "interactive-dev" ]; then
     docker exec -it --user root ${project_name}-backend bash
 elif [ "$mode" == "check-syntax" ]; then
     docker exec -it --user root ${project_name}-backend flake8 .
+elif [ "$mode" == "generate-data" ]; then
+    docker exec -it --user root ${project_name}-backend bash -c "python manage.py generate_fake_users && python manage.py generate_fake_organizations && python manage.py generate_fake_gates && python manage.py generate_fake_parkings && python manage.py generate_fake_cctvs && python manage.py generate_fake_vehicles"
 else
     echo -e $"Invalid mode \nPlease enter one of the following mode:\n${modes}"
 fi

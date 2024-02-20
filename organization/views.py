@@ -6,6 +6,12 @@ from organization.serializers import (
     OrganizationSerializer,
     GateSerializer
 )
+from organization.permissions import (
+    OrganizationPermission,
+    GatePermission,
+    DashboardPermission
+)
+
 from vehicle.models import Vehicle
 from organization.filters import VehicleFilter
 from rest_framework.response import Response
@@ -13,9 +19,9 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from users.models import ParkomateUser
-from users.serializers import ParkomateUserSerializer   
+from users.serializers import ParkomateUserSerializer
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncWeek, TruncMonth, TruncDay
 import random
 from utils.emails import send_email
@@ -30,13 +36,15 @@ class DashboardView(ListAPIView):
     def list(self, request, pk=None):
         user = request.user
         organization = Organization.objects.get(id=pk)
-        vehicles = Vehicle.objects.filter(entry_gate__organization=organization)
+        vehicles = Vehicle.objects.filter(
+            entry_gate__organization=organization)
         if user.email not in organization.admins or organization.owner != user:
             return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
         else:
             try:
                 daily_entries = self.filter_queryset(vehicles).count()
-                daily_exits = self.filter_queryset(vehicles).exclude(exit_time=None).count()
+                daily_exits = self.filter_queryset(
+                    vehicles).exclude(exit_time=None).count()
 
                 total_slots = organization.total_slots
                 filled_slots = organization.filled_slots
@@ -45,7 +53,8 @@ class DashboardView(ListAPIView):
                 average_occupancy = 0
                 for vehicle in vehicles:
                     if vehicle.exit_time is not None:
-                        average_occupancy += (vehicle.exit_time - vehicle.entry_time).seconds / 3600
+                        average_occupancy += (vehicle.exit_time -
+                                              vehicle.entry_time).seconds / 3600
                 average_occupancy = average_occupancy / vehicles.count()
 
                 DAYS = {
@@ -100,8 +109,10 @@ class DashboardView(ListAPIView):
                     for vehicle in vehicles:
                         if vehicle.vehicle_type == vehicle_type['vehicle_type']:
                             if vehicle.exit_time is not None:
-                                average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] += (vehicle.exit_time - vehicle.entry_time).seconds / 3600
-                    average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] = average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] / vehicle_type['count']
+                                average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] += (
+                                    vehicle.exit_time - vehicle.entry_time).seconds / 3600
+                    average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']
+                                                      ] = average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] / vehicle_type['count']
 
                 return Response({
                     "organization": organization.name,
@@ -129,30 +140,34 @@ class OrganizationView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        organizations = Organization.objects.all()
+        current_user = request.user
+        organizations = Organization.objects.filter(
+            Q(owner=current_user), Q(admins__contains=[current_user.email]))
         page = self.paginate_queryset(organizations)
         if page is not None:
-            serializer = OrganizationSerializer(page, context={'request': request}, many=True)
+            serializer = OrganizationSerializer(
+                page, context={'request': request}, many=True)
             return self.get_paginated_response(serializer.data)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
         user = request.user
         if organization.owner == user:
             serializer = OrganizationSerializer(organization)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to view this organization."})
+            return Response({"error": "You are not authorized to view this organization."}, status=status.HTTP_403_FORBIDDEN)
 
     def create(self, request):
         request.data.update({'admins': []})
-        serializer = OrganizationSerializer(data=request.data, context={'request': request})
+        serializer = OrganizationSerializer(
+            data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
@@ -162,20 +177,20 @@ class OrganizationView(ModelViewSet):
                 organization, data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to update this organization."})
+            return Response({"error": "You are not authorized to update this organization."}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
         user = request.user
         if organization.owner == user:
             organization.delete()
-            return Response({"success": "Organization deleted successfully."})
+            return Response({"success": "Organization deleted successfully."}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to delete this organization."})
+            return Response({"error": "You are not authorized to delete this organization."}, status=status.HTTP_403_FORBIDDEN)
 
     def partial_update(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
@@ -185,11 +200,11 @@ class OrganizationView(ModelViewSet):
                 organization, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to update this organization."})
+            return Response({"error": "You are not authorized to update this organization."}, status=status.HTTP_403_FORBIDDEN)
 
 
 class GateView(ModelViewSet):
@@ -206,9 +221,10 @@ class GateView(ModelViewSet):
                 gates.remove(gate)
         page = self.paginate_queryset(gates)
         if page is not None:
-            serializer = GateSerializer(page, context={'request': request}, many=True)
+            serializer = GateSerializer(
+                page, context={'request': request}, many=True)
             return self.get_paginated_response(serializer.data)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
         gate = Gate.objects.get(id=pk)
@@ -217,19 +233,19 @@ class GateView(ModelViewSet):
         if organization.owner == user:
             serializer = GateSerializer(gate)
             if serializer.is_valid():
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to view this gate."})
+            return Response({"error": "You are not authorized to view this gate."}, status=status.HTTP_403_FORBIDDEN)
 
     def create(self, request):
         serializer = GateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
         gate = Gate.objects.get(id=pk)
@@ -239,11 +255,11 @@ class GateView(ModelViewSet):
             serializer = GateSerializer(gate, data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to update this gate."})
+            return Response({"error": "You are not authorized to update this gate."}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, pk=None):
         gate = Gate.objects.get(id=pk)
@@ -251,9 +267,9 @@ class GateView(ModelViewSet):
         user = request.user
         if organization.owner == user:
             gate.delete()
-            return Response({"success": "Gate deleted successfully."})
+            return Response({"success": "Gate deleted successfully."}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to delete this gate."})
+            return Response({"error": "You are not authorized to delete this gate."}, status=status.HTTP_403_FORBIDDEN)
 
     def partial_update(self, request, pk=None):
         gate = Gate.objects.get(id=pk)
@@ -263,12 +279,12 @@ class GateView(ModelViewSet):
             serializer = GateSerializer(gate, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response(serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"error": "You are not authorized to update this gate."})
-        
+            return Response({"error": "You are not authorized to update this gate."}, status=status.HTTP_403_FORBIDDEN)
+
 
 class AdminView(ModelViewSet):
     queryset = Organization.objects.all()
@@ -289,9 +305,10 @@ class AdminView(ModelViewSet):
                     existing_user = ParkomateUser.objects.filter(email=email)
                     if existing_user.exists():
                         return Response({"error": "User with this email already exists."})
-                    password = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz1234567890', k=8))
-                    user = ParkomateUser.objects.create(name=request.data['email'], 
-                                                        email=email, 
+                    password = ''.join(random.choices(
+                        'abcdefghijklmnopqrstuvwxyz1234567890', k=8))
+                    user = ParkomateUser.objects.create(name=request.data['email'],
+                                                        email=email,
                                                         phone=request.data['phone'])
                     user.set_password(password)
                     user.save()
@@ -330,12 +347,12 @@ class AdminView(ModelViewSet):
                     )
                     organization.admins.append(email)
                     organization.save()
-                    return Response({"success": "Admin added successfully."})
+                    return Response({"success": "Admin added successfully."}, status=status.HTTP_201_CREATED)
             else:
-                return Response({"error": "You are not authorized to add admin to this organization."})
+                return Response({"error": "You are not authorized to add admin to this organization."}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
-            return Response({"error": str(e)})
-        
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def destroy(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
         user = request.user
@@ -348,10 +365,10 @@ class AdminView(ModelViewSet):
                 organization.save()
                 user = ParkomateUser.objects.get(email=email)
                 user.delete()
-                return Response({"success": "Admin removed successfully."})
+                return Response({"success": "Admin removed successfully."}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to remove admin from this organization."})
-        
+            return Response({"error": "You are not authorized to remove admin from this organization."}, status=status.HTTP_403_FORBIDDEN)
+
     def list(self, request):
         id = request.data['organization']
         organization = Organization.objects.get(id=id)
@@ -359,10 +376,10 @@ class AdminView(ModelViewSet):
         if organization.owner == user:
             admins = organization.admins
             serializer = ParkomateUserSerializer(admins, many=True)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to view admins of this organization."})
-        
+            return Response({"error": "You are not authorized to view admins of this organization."}, status=status.HTTP_403_FORBIDDEN)
+
     def retrieve(self, request):
         id = request.data['organization']
         organization = Organization.objects.get(id=id)
@@ -371,12 +388,12 @@ class AdminView(ModelViewSet):
             email = request.data['email']
             admin = ParkomateUser.objects.get(email=email)
             serializer = ParkomateUserSerializer(admin)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "You are not authorized to view admins of this organization."})
-        
+            return Response({"error": "You are not authorized to view admins of this organization."}, status=status.HTTP_403_FORBIDDEN)
+
     def update(self, request, pk=None):
-        return Response({"error": "You are not authorized to update admins of this organization."})
-        
+        return Response({"error": "You are not authorized to update admins of this organization."}, status=status.HTTP_403_FORBIDDEN)
+
     def partial_update(self, request, pk=None):
-        return Response({"error": "You are not authorized to update admins of this organization."})
+        return Response({"error": "You are not authorized to update admins of this organization."}, status=status.HTTP_403_FORBIDDEN)
