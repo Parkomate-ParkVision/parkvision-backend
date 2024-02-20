@@ -32,6 +32,7 @@ class HomeView(APIView):
                 '/organization/',
                 '/parking/',
                 '/vehicle/',
+                '/analytics/'
             ]
         })
 
@@ -43,6 +44,7 @@ urlpatterns = [
     path("", include("organization.urls")),
     path("", include("vehicle.urls")),
     path("", include("parking.urls")),
+    path("", include("analytics.urls")),
 ]
 
 urlpatterns += [
