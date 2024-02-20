@@ -1,6 +1,11 @@
 from django.urls import path
-from analytics.views import VehicleDetails
+from analytics.views import IDFYDetails, VehicleDetailsView
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register('vehicle-details', VehicleDetailsView, basename='vehicle-details')
+
 
 urlpatterns = [
-    path('vehicle-details/', VehicleDetails.as_view(), name='vehicle-details'),
-]
+    path('idfy-details/', IDFYDetails.as_view(), name='idfy-details'),
+] + router.urls
