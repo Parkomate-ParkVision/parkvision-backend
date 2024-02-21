@@ -2,10 +2,11 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
-from analytics.utils import get_vehicle_details, get_idfy_request_id
 from analytics.serializers import IDFYRequestSerializer, VehicleDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
 from analytics.models import VehicleDetails
+from utils.idfy import get_idfy_request_id, get_vehicle_details
+import time
 
 
 class IDFYDetails(GenericAPIView):
@@ -14,17 +15,19 @@ class IDFYDetails(GenericAPIView):
 
     def post(self, request):
         try:
-            rc_number = request.data['rc_number']
-            challan_blacklist_details = request.data['challan_blacklist_details']
-            if challan_blacklist_details == 'true':
-                challan_blacklist_details = True
+            if request.data['challan_blacklist_details'] == "false":
+                request.data['challan_blacklist_details'] = False
             else:
-                challan_blacklist_details = False
-            request_id = request.data['request_id'] if 'request_id' in request.data else None
-            if request_id is None:
-                request_id = get_idfy_request_id(rc_number, challan_blacklist_details)['request_id']
-                print(request_id, flush=True)
-            response = get_vehicle_details(request_id)
+                request.data['challan_blacklist_details'] = True
+            request_id = get_idfy_request_id(
+                request.data['rc_number'], 
+                request.data['challan_blacklist_details']
+            )
+            print(request_id, flush=True)
+            time.sleep(2)
+            response = get_vehicle_details(
+                request_id
+            )
             return Response(response, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)

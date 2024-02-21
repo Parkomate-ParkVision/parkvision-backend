@@ -1,10 +1,13 @@
+from backend.celery import app
 import os
 from dotenv import load_dotenv
 import requests
 from uuid import uuid4
 load_dotenv()
 
-def get_idfy_request_id(rc_number: str, challan_blacklist_details: bool = False):
+
+@app.task(bind=True)
+def get_idfy_request_id(rc_number: str, challan_blacklist_details: bool):
     url = "https://eve.idfy.com/v3/tasks/async/verify_with_source/ind_rc_plus"
 
     task_id = str(uuid4())
@@ -27,10 +30,11 @@ def get_idfy_request_id(rc_number: str, challan_blacklist_details: bool = False)
 
     response = requests.request("POST", url, headers=headers, json=payload)
 
-    return response.json()
+    return response.json()['request_id']
 
 
-def get_vehicle_details(request_id: str):
+@app.task(bind=True)
+def get_vehicle_details(self, request_id: str):
     url = "https://eve.idfy.com/v3/tasks?request_id=" + request_id
 
     api_key = os.getenv('IDFY_KEY')

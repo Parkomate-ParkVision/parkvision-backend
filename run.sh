@@ -14,7 +14,7 @@ elif [ "$mode" == "start-dev" ]; then
     docker-compose -p ${project_name}-dev -f docker-compose-dev.yml build
     docker-compose -p ${project_name}-dev -f docker-compose-dev.yml up -d
 elif [ "$mode" == "stop-dev" ]; then
-    docker-compose -p ${project_name}-dev -f docker-compose-dev.yml down
+    docker-compose -p ${project_name}-dev -f docker-compose-dev.yml stop
 elif [ "$mode" == "interactive-dev" ]; then
     docker exec -it --user root ${project_name}-backend bash
 elif [ "$mode" == "check-syntax" ]; then
