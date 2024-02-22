@@ -27,8 +27,25 @@ class IDFYDetails(GenericAPIView):
             time.sleep(2)
             response = get_vehicle_details(
                 request_id
-            )
-            return Response(response, status=status.HTTP_200_OK)
+            )["result"]["extraction_output"]
+
+            request.data['owner_name'] = response['owner_name']
+            request.data['vehicle_class'] = response['vehicle_class']
+            request.data['norms_type'] = response['norms_type']
+            request.data['manufacturer_model'] = response['manufacturer_model']
+            request.data['insurance_validity'] = response['insurance_validity']
+            request.data['address'] = response['address']
+            request.data['seating_capacity'] = response['seating_capacity']
+            request.data['manufacturing_year'] = response['manufacturing_year']
+            request.data['manufacturer'] = response['manufacturer']
+            request.data['state'] = response['state']
+            request.data['fuel_type'] = response['fuel_type']
+            request.data['puc_valid_type'] = response['puc_valid_type']
+            request.data['insurance_name'] = response['insurance_name'] 
+            try:
+                return VehicleDetailsView().create(request)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         
