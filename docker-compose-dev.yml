@@ -69,6 +69,18 @@ services:
     environment:
       -  DJANGO_SETTINGS_MODULE=backend.settings
 
+  celery-beat:
+    container_name: "parkomate-celery-beat"
+    build: .
+    command: celery -A backend beat -l INFO -f /opt/logs/celery/celery.logs
+    volumes:
+      - .:/opt/
+    depends_on:
+      - rabbit-mq
+      - backend
+    environment:
+      -  DJANGO_SETTINGS_MODULE=backend.settings
+
   flower:
     container_name: "parkomate-flower"
     build: .
