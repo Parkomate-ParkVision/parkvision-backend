@@ -3,6 +3,7 @@ from utils.emails import send_email
 from organization.models import Organization
 from celery.schedules import crontab
 
+
 @app.task()
 def send_number_plate_verification_email():
     organizations = Organization.objects.all()
@@ -10,8 +11,8 @@ def send_number_plate_verification_email():
     for org in organizations:
         receivers.extend(org.admins)
 
-    send_email(receiver="dgdeshmukh2002@gmail.com",subject= "ParkVision Admin Reminder",
-    message=f"""
+    send_email(receiver=receivers, subject="ParkVision Admin Reminder",
+               message=f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -42,5 +43,4 @@ def send_number_plate_verification_email():
     </html>
     """)
 
-    print("The email has been sent!", flush= True)
-
+    print("The email has been sent!", flush=True)

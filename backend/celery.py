@@ -19,8 +19,11 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'run-every-afternoon': {
         'task': 'vehicle.tasks.send_number_plate_verification_email',
-        'schedule': crontab(hour=22, minute=50),
+        'schedule': crontab(minute=0, hour=0),
         'args': (),
+        'options': {
+            'expires': 20,
+        },
     },
 }
 
