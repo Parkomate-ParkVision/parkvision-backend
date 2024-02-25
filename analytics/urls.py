@@ -1,5 +1,5 @@
 from django.urls import path
-from analytics.views import IDFYDetails, VehicleDetailsView
+from analytics.views import VehicleDetailsView, IDFYDetails
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()

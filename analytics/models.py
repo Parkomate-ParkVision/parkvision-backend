@@ -17,13 +17,13 @@ class VehicleDetails(models.Model):
     manufacturer = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=255, blank=True, null=True)
     fuel_type = models.CharField(max_length=255, blank=True, null=True)
-    puc_valid_type = models.CharField(max_length=255, blank=True, null=True)
+    puc_valid_upto = models.CharField(max_length=255, blank=True, null=True)
     insurance_name = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         db_table = 'vehicle_details'
         verbose_name_plural = 'Vehicle Details'
-        ordering = ['-insurance_validity', '-puc_valid_type', '-id']
+        ordering = ['-insurance_validity', '-puc_valid_upto', '-id']
 
     def __str__(self):
         return str(self.vehicle)

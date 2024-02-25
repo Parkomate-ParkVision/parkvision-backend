@@ -19,7 +19,7 @@ class VehicleDetailsSerializer(ModelSerializer):
             'manufacturer',
             'state',
             'fuel_type',
-            'puc_valid_type',
+            'puc_valid_upto',
             'insurance_name'
         ]
         list_fields = fields
@@ -28,3 +28,4 @@ class VehicleDetailsSerializer(ModelSerializer):
 class IDFYRequestSerializer(Serializer):
     rc_number = CharField()
     challan_blacklist_details = CharField()
+    vehicle = CharField()
