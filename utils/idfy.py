@@ -7,7 +7,7 @@ load_dotenv()
 
 
 @app.task(bind=True)
-def get_idfy_request_id(rc_number: str, challan_blacklist_details: bool):
+def get_idfy_request_id(self, rc_number: str, challan_blacklist_details: bool):
     url = "https://eve.idfy.com/v3/tasks/async/verify_with_source/ind_rc_plus"
 
     task_id = str(uuid4())

@@ -20,7 +20,7 @@ class VehicleDetailsAdmin(admin.ModelAdmin):
         'manufacturer',
         'state',
         'fuel_type',
-        'puc_valid_type',
+        'puc_valid_upto',
         'insurance_name',
     )
     list_filter = ('vehicle',)

@@ -24,24 +24,26 @@ class IDFYDetails(GenericAPIView):
                 request.data['challan_blacklist_details']
             )
             print(request_id, flush=True)
-            time.sleep(2)
-            response = get_vehicle_details(
-                request_id
-            )["result"]["extraction_output"]
 
-            request.data['owner_name'] = response['owner_name']
-            request.data['vehicle_class'] = response['vehicle_class']
-            request.data['norms_type'] = response['norms_type']
-            request.data['manufacturer_model'] = response['manufacturer_model']
-            request.data['insurance_validity'] = response['insurance_validity']
-            request.data['address'] = response['address']
-            request.data['seating_capacity'] = response['seating_capacity']
-            request.data['manufacturing_year'] = response['manufacturing_year']
-            request.data['manufacturer'] = response['manufacturer']
-            request.data['state'] = response['state']
-            request.data['fuel_type'] = response['fuel_type']
-            request.data['puc_valid_type'] = response['puc_valid_type']
-            request.data['insurance_name'] = response['insurance_name'] 
+            while True:
+                response = get_vehicle_details(request_id)
+                if response[0]['status'] == 'completed':
+                    break
+                time.sleep(1)
+
+            request.data['owner_name'] = response[0]['result']['extraction_output']['owner_name']
+            request.data['vehicle_class'] = response[0]['result']['extraction_output']['vehicle_class']
+            request.data['norms_type'] = response[0]['result']['extraction_output']['norms_type']
+            request.data['manufacturer_model'] = response[0]['result']['extraction_output']['manufacturer_model']
+            request.data['insurance_validity'] = response[0]['result']['extraction_output']['insurance_validity']
+            request.data['address'] = response[0]['result']['extraction_output']['current_address']
+            request.data['seating_capacity'] = response[0]['result']['extraction_output']['seating_capacity']
+            request.data['manufacturing_year'] = response[0]['result']['extraction_output']['m_y_manufacturing']
+            request.data['manufacturer'] = response[0]['result']['extraction_output']['manufacturer']
+            request.data['state'] = response[0]['result']['extraction_output']['state']
+            request.data['fuel_type'] = response[0]['result']['extraction_output']['fuel_type']
+            request.data['puc_valid_upto'] = response[0]['result']['extraction_output']['puc_valid_upto']
+            request.data['insurance_name'] = response[0]['result']['extraction_output']['insurance_name']
             try:
                 return VehicleDetailsView().create(request)
             except Exception as e:
@@ -86,7 +88,7 @@ class VehicleDetailsView(ModelViewSet):
                 "manufacturer": request.data['manufacturer'],
                 "state": request.data['state'],
                 "fuel_type": request.data['fuel_type'],
-                "puc_valid_type": request.data['puc_valid_type'],
+                "puc_valid_upto": request.data['puc_valid_upto'],
                 "insurance_name": request.data['insurance_name']
             }
             serializer = self.serializer_class(data=fields)
