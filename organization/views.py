@@ -141,8 +141,16 @@ class OrganizationView(ModelViewSet):
 
     def list(self, request):
         current_user = request.user
+        if current_user.is_superuser:
+            organizations = Organization.objects.all()
+            page = self.paginate_queryset(organizations)
+            if page is not None:
+                serializer = OrganizationSerializer(
+                    page, context={'request': request}, many=True)
+                return self.get_paginated_response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         organizations = Organization.objects.filter(
-            Q(owner=current_user), Q(admins__contains=[current_user.email]))
+            Q(owner=current_user) | Q(admins__contains=[current_user.email]))
         page = self.paginate_queryset(organizations)
         if page is not None:
             serializer = OrganizationSerializer(
