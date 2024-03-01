@@ -88,7 +88,7 @@ class VehicleView(ModelViewSet):
         user = request.user
         if vehicle.entry_gate.organization.owner == user:
             vehicle.delete()
-            return Response({"success": "Vehicle deleted successfully."}, status=status.HTTP_200_OK)
+            return Response({"success": "Vehicle deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "You are not authorized to delete this vehicle."}, status=status.HTTP_403_FORBIDDEN)
 

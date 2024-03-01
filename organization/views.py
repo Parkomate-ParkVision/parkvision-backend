@@ -196,7 +196,7 @@ class OrganizationView(ModelViewSet):
         user = request.user
         if organization.owner == user:
             organization.delete()
-            return Response({"success": "Organization deleted successfully."}, status=status.HTTP_200_OK)
+            return Response({"success": "Organization deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "You are not authorized to delete this organization."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -275,7 +275,7 @@ class GateView(ModelViewSet):
         user = request.user
         if organization.owner == user:
             gate.delete()
-            return Response({"success": "Gate deleted successfully."}, status=status.HTTP_200_OK)
+            return Response({"success": "Gate deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "You are not authorized to delete this gate."}, status=status.HTTP_403_FORBIDDEN)
 

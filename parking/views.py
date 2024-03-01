@@ -13,7 +13,7 @@ class ParkingView(viewsets.ModelViewSet):
     queryset = Parking.objects.all()
     serializer_class = ParkingSerializer
     pagination_class = PageNumberPagination
-    permission_classes = [IsAuthenticated, ParkingPermission]
+    permission_classes = [IsAuthenticated]
 
     def list(self, request):
         queryset = Parking.objects.filter(isActive=True)
@@ -68,7 +68,7 @@ class ParkingView(viewsets.ModelViewSet):
         user = request.user
         if parking.organization.owner == user:
             parking.delete()
-            return Response({"success": "Parking deleted successfully."}, status=status.HTTP_200_OK)
+            return Response({"success": "Parking deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "You are not authorized to delete this parking."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -91,7 +91,7 @@ class CCTVView(viewsets.ModelViewSet):
     queryset = CCTV.objects.all()
     serializer_class = CCTVSerializer
     pagination_class = PageNumberPagination
-    permission_classes = [IsAuthenticated, CCTVPermission]
+    permission_classes = [IsAuthenticated]
 
     def list(self, request):
         queryset = CCTV.objects.filter(isActive=True)
@@ -146,7 +146,7 @@ class CCTVView(viewsets.ModelViewSet):
         user = request.user
         if cctv.parking.organization.owner == user:
             cctv.delete()
-            return Response({"success": "CCTV deleted successfully."}, status=status.HTTP_200_OK)
+            return Response({"success": "CCTV deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"error": "You are not authorized to delete this CCTV."}, status=status.HTTP_403_FORBIDDEN)
 
