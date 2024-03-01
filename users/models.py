@@ -28,9 +28,6 @@ class ParkomateUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, name, phone, password=None, **extra_fields):
-        extra_fields.setdefault('is_admin', True)
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
         if not email:
             raise ValueError("Users must have email address")
         if not name:
@@ -44,6 +41,9 @@ class ParkomateUserManager(BaseUserManager):
             **extra_fields,
         )
         user.set_password(password)
+        user.is_admin = True
+        user.is_staff = True
+        user.is_superuser = True
         user.save(using=self._db)
         return user
 
