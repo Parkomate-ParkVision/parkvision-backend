@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "drf_api_logger",
     "rest_framework",
     "rest_framework_simplejwt",
     'rest_framework_simplejwt.token_blacklist',
@@ -66,7 +67,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'drf_api_logger.middleware.api_logger_middleware.APILoggerMiddleware',
 ]
+
+# Logging settings
+DRF_API_LOGGER_DATABASE = True
 
 ROOT_URLCONF = "backend.urls"
 
