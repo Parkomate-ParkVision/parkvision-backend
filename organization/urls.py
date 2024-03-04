@@ -6,7 +6,8 @@ from organization.views import (
     OrganizationView,
     GateView,
     AdminView,
-    DashboardView
+    DashboardView,
+    OrganizationWithOutPaginationView
 )
 
 router = DefaultRouter()
@@ -24,11 +25,14 @@ class HomeView(APIView):
                 '/gates/',
                 '/admins/',
                 '/dashboard/'
+                '/organizations-no-pagination/',
             ]
         })
 
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),
-    path('dashboard/<str:pk>/', DashboardView.as_view(), name="dashboard")
+    path('dashboard/<str:pk>/', DashboardView.as_view(), name="dashboard"),
+    path('organizations-no-pagination/', OrganizationWithOutPaginationView.as_view(),
+         name="organizations-no-pagination")
 ] + router.urls

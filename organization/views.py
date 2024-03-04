@@ -37,7 +37,7 @@ class DashboardView(ListAPIView):
     def list(self, request, pk=None):
         user = request.user
         try:
-            organization = Organization.objects.get(id=pk)
+            organization = Organization.objects.get(id=pk, owner=user)
         except Organization.DoesNotExist:
             return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
         vehicles = Vehicle.objects.filter(
@@ -45,103 +45,111 @@ class DashboardView(ListAPIView):
         if user.email not in organization.admins or organization.owner != user:
             return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
         else:
-            try:
-                daily_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=1)).count()
-                weekly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=7)).count()
-                monthly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=30)).count()
-                daily_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=1)).count()
-                weekly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=7)).count()
-                monthly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=30)).count()
+            # try:
+            daily_entries = vehicles.filter(
+                entry_time__gte=datetime.now() - timedelta(days=1)).count()
+            weekly_entries = vehicles.filter(
+                entry_time__gte=datetime.now() - timedelta(days=7)).count()
+            monthly_entries = vehicles.filter(
+                entry_time__gte=datetime.now() - timedelta(days=30)).count()
 
-                total_slots = organization.total_slots
-                filled_slots = organization.filled_slots
-                percentage_occupied = (filled_slots / total_slots) * 100
+            daily_exits = vehicles.filter(
+                exit_time__gte=datetime.now() - timedelta(days=1)).count()
+            weekly_exits = vehicles.filter(
+                exit_time__gte=datetime.now() - timedelta(days=7)).count()
+            monthly_exits = vehicles.filter(
+                exit_time__gte=datetime.now() - timedelta(days=30)).count()
 
-                average_occupancy = 0
-                for vehicle in vehicles:
-                    if vehicle.exit_time is not None:
-                        average_occupancy += (vehicle.exit_time -
-                                              vehicle.entry_time).seconds / 3600
+            total_slots = organization.total_slots
+            filled_slots = organization.filled_slots
+            percentage_occupied = (filled_slots / total_slots) * 100
+
+            average_occupancy = 0
+            for vehicle in vehicles:
+                if vehicle.exit_time is not None:
+                    average_occupancy += (vehicle.exit_time -
+                                          vehicle.entry_time).seconds / 3600
+            if vehicles.count() > 0:
                 average_occupancy = average_occupancy / vehicles.count()
 
-                DAYS = {
-                    0: "Monday",
-                    1: "Tuesday",
-                    2: "Wednesday",
-                    3: "Thursday",
-                    4: "Friday",
-                    5: "Saturday",
-                    6: "Saturday",
-                }
-                daily_data_dict = {
-                    'Monday': 0,
-                    'Tuesday': 0,
-                    'Wednesday': 0,
-                    'Thursday': 0,
-                    'Friday': 0,
-                    'Saturday': 0,
-                    'Sunday': 0
-                }
-                daily_data = vehicles.exclude(exit_time=None).annotate(
-                    day_start=TruncDay('entry_time')
-                ).values('day_start').annotate(count=Count('id')).order_by(
-                    'day_start'
-                )
-                for data in daily_data:
-                    day = data['day_start'].weekday()
-                    daily_data_dict[DAYS[int(day)]] += data['count']
+            DAYS = {
+                0: "Monday",
+                1: "Tuesday",
+                2: "Wednesday",
+                3: "Thursday",
+                4: "Friday",
+                5: "Saturday",
+                6: "Saturday",
+            }
+            daily_data_dict = {
+                'Monday': 0,
+                'Tuesday': 0,
+                'Wednesday': 0,
+                'Thursday': 0,
+                'Friday': 0,
+                'Saturday': 0,
+                'Sunday': 0
+            }
+            daily_data = vehicles.exclude(exit_time=None).annotate(
+                day_start=TruncDay('entry_time')
+            ).values('day_start').annotate(count=Count('id')).order_by(
+                'day_start'
+            )
+            for data in daily_data:
+                day = data['day_start'].weekday()
+                daily_data_dict[DAYS[int(day)]] += data['count']
 
-                weekly_data = vehicles.exclude(exit_time=None).annotate(
-                    week_start=TruncWeek('entry_time')
-                ).values('week_start').annotate(count=Count('id')).order_by(
-                    'week_start'
-                )
-                monthly_data = vehicles.exclude(exit_time=None).annotate(
-                    month_start=TruncMonth('entry_time')
-                ).values('month_start').annotate(count=Count('id')).order_by(
-                    'month_start'
-                )
+            weekly_data = vehicles.exclude(exit_time=None).annotate(
+                week_start=TruncWeek('entry_time')
+            ).values('week_start').annotate(count=Count('id')).order_by(
+                'week_start'
+            )
+            monthly_data = vehicles.exclude(exit_time=None).annotate(
+                month_start=TruncMonth('entry_time')
+            ).values('month_start').annotate(count=Count('id')).order_by(
+                'month_start'
+            )
 
-                vehicle_types = vehicles.exclude(exit_time=None).values(
-                    'vehicle_type'
-                ).annotate(
-                    count=Count('id')
-                ).order_by(
-                    'vehicle_type'
-                )
+            vehicle_types = vehicles.exclude(exit_time=None).values(
+                'vehicle_type'
+            ).annotate(
+                count=Count('id')
+            ).order_by(
+                'vehicle_type'
+            )
 
-                average_occupancy_by_vehicle_type = {}
-                for vehicle_type in vehicle_types:
-                    average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] = 0
-                    for vehicle in vehicles:
-                        if vehicle.vehicle_type == vehicle_type['vehicle_type']:
-                            if vehicle.exit_time is not None:
-                                average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] += (
-                                    vehicle.exit_time - vehicle.entry_time).seconds / 3600
-                    average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']
-                                                      ] = average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] / vehicle_type['count']
+            average_occupancy_by_vehicle_type = {}
+            for vehicle_type in vehicle_types:
+                average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] = 0
+                for vehicle in vehicles:
+                    if vehicle.vehicle_type == vehicle_type['vehicle_type']:
+                        if vehicle.exit_time is not None:
+                            average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] += (
+                                vehicle.exit_time - vehicle.entry_time).seconds / 3600
+                average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']
+                                                  ] = average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] / vehicle_type['count']
 
-                return Response({
-                    "organization": organization.name,
-                    "daily_entries": daily_entries,
-                    "weekly_entries": weekly_entries,
-                    "monthly_entries": monthly_entries,
-                    "daily_exits": daily_exits,
-                    "weekly_exits": weekly_exits,
-                    "monthly_exits": monthly_exits,
-                    "total_slots": total_slots,
-                    "filled_slots": filled_slots,
-                    "percentage_occupied": percentage_occupied,
-                    "average_occupancy": average_occupancy,
-                    "daily_distribution": daily_data_dict,
-                    "daily_data": daily_data,
-                    "weekly_data": weekly_data,
-                    "monthly_data": monthly_data,
-                    "vehicle_types": vehicle_types,
-                    "average_occupancy_by_vehicle_type": average_occupancy_by_vehicle_type
-                }, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                "organization": organization.name,
+                "daily_entries": daily_entries,
+                "weekly_entries": weekly_entries,
+                "monthly_entries": monthly_entries,
+                "daily_exits": daily_exits,
+                "weekly_exits": weekly_exits,
+                "monthly_exits": monthly_exits,
+                "total_slots": total_slots,
+                "filled_slots": filled_slots,
+                "percentage_occupied": percentage_occupied,
+                "average_occupancy": average_occupancy,
+                "daily_distribution": daily_data_dict,
+                "daily_data": daily_data,
+                "weekly_data": weekly_data,
+                "monthly_data": monthly_data,
+                "vehicle_types": vehicle_types,
+                "average_occupancy_by_vehicle_type": average_occupancy_by_vehicle_type
+            }, status=status.HTTP_200_OK)
+            # except Exception as e:
+            #     return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class OrganizationView(ModelViewSet):
@@ -303,6 +311,25 @@ class GateView(ModelViewSet):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"error": "You are not authorized to update this gate."}, status=status.HTTP_403_FORBIDDEN)
+
+
+class OrganizationWithOutPaginationView(ListAPIView):
+    queryset = Organization.objects.all()
+    serializer_class = OrganizationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        current_user = request.user
+        if current_user.is_superuser:
+            organizations = Organization.objects.all()
+            serializer = OrganizationSerializer(
+                organizations, context={'request': request}, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        organizations = Organization.objects.filter(
+            Q(owner=current_user) | Q(admins__contains=[current_user.email]))
+        serializer = OrganizationSerializer(
+            organizations, context={'request': request}, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AdminView(ModelViewSet):
