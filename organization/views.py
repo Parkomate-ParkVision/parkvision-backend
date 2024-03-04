@@ -27,6 +27,7 @@ import random
 from utils.emails import send_email
 from rest_framework import status
 from rest_framework.generics import ListAPIView
+from datetime import datetime, timedelta
 
 
 class DashboardView(ListAPIView):
@@ -35,16 +36,22 @@ class DashboardView(ListAPIView):
 
     def list(self, request, pk=None):
         user = request.user
-        organization = Organization.objects.get(id=pk)
+        try:
+            organization = Organization.objects.get(id=pk)
+        except Organization.DoesNotExist:
+            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
         vehicles = Vehicle.objects.filter(
             entry_gate__organization=organization)
         if user.email not in organization.admins or organization.owner != user:
             return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
         else:
             try:
-                daily_entries = self.filter_queryset(vehicles).count()
-                daily_exits = self.filter_queryset(
-                    vehicles).exclude(exit_time=None).count()
+                daily_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=1)).count()
+                weekly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=7)).count()
+                monthly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=30)).count()
+                daily_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=1)).count()
+                weekly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=7)).count()
+                monthly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=30)).count()
 
                 total_slots = organization.total_slots
                 filled_slots = organization.filled_slots
@@ -117,7 +124,11 @@ class DashboardView(ListAPIView):
                 return Response({
                     "organization": organization.name,
                     "daily_entries": daily_entries,
+                    "weekly_entries": weekly_entries,
+                    "monthly_entries": monthly_entries,
                     "daily_exits": daily_exits,
+                    "weekly_exits": weekly_exits,
+                    "monthly_exits": monthly_exits,
                     "total_slots": total_slots,
                     "filled_slots": filled_slots,
                     "percentage_occupied": percentage_occupied,

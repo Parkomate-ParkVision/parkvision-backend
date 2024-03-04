@@ -30,5 +30,5 @@ class HomeView(APIView):
 
 urlpatterns = [
     path('', HomeView.as_view(), name="home"),
-    path('dashboard/<str:pk>', DashboardView.as_view(), name="dashboard")
+    path('dashboard/<str:pk>/', DashboardView.as_view(), name="dashboard")
 ] + router.urls
