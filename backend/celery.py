@@ -25,7 +25,16 @@ app.conf.beat_schedule = {
             'expires': 20,
         },
     },
+    'run-every-month-1st': {
+        'task': 'vehicle.tasks.send_dashboard_email',
+        'schedule': crontab(minute=1, hour=0, day_of_month=4),
+        'args': (),
+        'options': {
+            'expires': 20,
+        },
+    },
 }
+
 
 
 @shared_task
