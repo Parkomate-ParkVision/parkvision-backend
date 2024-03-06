@@ -37,12 +37,13 @@ class DashboardView(ListAPIView):
     def list(self, request, pk=None):
         user = request.user
         try:
-            organization = Organization.objects.get(id=pk, owner=user)
+            organization = Organization.objects.get(Q(id=pk,
+                                                      owner=user) | Q(id=pk, admins__contains=[user.email]))
         except Organization.DoesNotExist:
             return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
         vehicles = Vehicle.objects.filter(
             entry_gate__organization=organization)
-        if user.email not in organization.admins or organization.owner != user:
+        if user.email not in organization.admins and organization.owner != user:
             return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
         else:
             # try:
@@ -180,6 +181,9 @@ class OrganizationView(ModelViewSet):
     def retrieve(self, request, pk=None):
         organization = Organization.objects.get(id=pk)
         user = request.user
+        if user.is_superuser:
+            serializer = OrganizationSerializer(organization)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         if organization.owner == user:
             serializer = OrganizationSerializer(organization)
             return Response(serializer.data, status=status.HTTP_200_OK)
