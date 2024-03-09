@@ -9,6 +9,7 @@ from users.models import ParkomateUser
 class OrganizationSerializer(serializers.ModelSerializer):
     ownerName = serializers.SerializerMethodField()
     adminDetails = serializers.SerializerMethodField()
+
     class Meta:
         model = Organization
         fields = [
@@ -20,6 +21,10 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'exit_gates',
             'total_slots',
             'filled_slots',
+            'parking_threshold',
+            'hourly_rate',
+            'occupancy_limit',
+            'penalty_charges',
             'createdAt',
             'updatedAt',
             'isActive',
@@ -46,6 +51,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     def get_ownerName(self, obj):
         return obj.owner.name
+
 
 class GateSerializer(serializers.ModelSerializer):
     organizationName = serializers.SerializerMethodField()
