@@ -21,7 +21,7 @@ elif [ "$mode" == "interactive-dev" ]; then
 elif [ "$mode" == "check-syntax" ]; then
     docker exec -it --user root ${project_name}-backend flake8 .
 elif [ "$mode" == "generate-data" ]; then
-    docker exec -it --user root ${project_name}-backend bash -c "python manage.py generate_fake_users && python manage.py generate_fake_organizations && python manage.py generate_fake_gates && python manage.py generate_fake_parkings && python manage.py generate_fake_cctvs && python manage.py generate_fake_vehicles"
+    docker exec -it --user root ${project_name}-backend bash -c "python manage.py generate_fake_users && python manage.py generate_fake_organizations && python manage.py generate_fake_gates && python manage.py generate_fake_parkings && python manage.py generate_fake_cctvs && python manage.py generate_fake_vehicles && python manage.py generate_fake_analytics"
 elif [ "$mode" == "run-tests" ]; then
     echo "Running DRF Backend Tests..."
     output=$(docker exec -it --user root ${project_name}-backend bash -c "python manage.py test -v 2 .")
