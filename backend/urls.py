@@ -28,24 +28,24 @@ class HomeView(APIView):
             'message': 'Welcome to Parkomate Backend Server',
             'endpoints': [
                 '/admin/',
-                '/analytics/',
-                '/users/',
-                '/organization/',
-                '/parking/',
-                '/vehicle/',
-                '/analytics/'
+                '/api/analytics/',
+                '/api/users/',
+                '/api/organization/',
+                '/api/parking/',
+                '/api/vehicle/',
+                '/api/analytics/'
             ]
         })
 
 
 urlpatterns = [
-    path("", HomeView.as_view()),
+    path("api/", HomeView.as_view()),
     path("admin/", admin.site.urls),
-    path("", include("users.urls")),
-    path("", include("organization.urls")),
-    path("", include("vehicle.urls")),
-    path("", include("parking.urls")),
-    path("", include("analytics.urls")),
+    path("api/", include("users.urls")),
+    path("api/", include("organization.urls")),
+    path("api/", include("vehicle.urls")),
+    path("api/", include("parking.urls")),
+    path("api/", include("analytics.urls")),
 ]
 
 urlpatterns += [
@@ -55,6 +55,8 @@ urlpatterns += [
         schema_view.without_ui(cache_timeout=0),
         name='schema-json'
     ),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('swagger/', schema_view.with_ui('swagger',
+         cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc',
+         cache_timeout=0), name='schema-redoc'),
 ]
