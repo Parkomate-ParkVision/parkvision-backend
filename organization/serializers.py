@@ -36,6 +36,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     def get_adminDetails(self, obj):
         admins = obj.admins
+        if admins is None:
+            return "No Admins Found"
         final_data = []
         for count, email in enumerate(admins):
             data = {}
@@ -50,7 +52,9 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return final_data
 
     def get_ownerName(self, obj):
-        return obj.owner.name
+        if obj.owner:
+            return obj.owner.name
+        return "no owner found"
 
 
 class GateSerializer(serializers.ModelSerializer):
