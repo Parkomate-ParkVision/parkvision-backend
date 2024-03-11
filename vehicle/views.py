@@ -21,6 +21,8 @@ from vehicle.filters import VehicleFilter
 from backend.settings import log_db_queries
 from django.core.cache import cache
 import redis 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
@@ -34,7 +36,7 @@ class VehicleView(ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated, VehiclePermission]
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request, *args, **kwargs):
         try:
             cache_key = f"vehicles_user_{request.user.id}"
@@ -46,7 +48,7 @@ class VehicleView(ModelViewSet):
                 vehicles = Vehicle.objects.all()
                 vehicles = self.filter_queryset(vehicles)
                 vehicles = vehicles.filter(entry_gate__organization__owner=request.user)
-                cache.set(cache_key, vehicles, timeout=3600)
+                cache.set(cache_key, vehicles, timeout=None) # Cache forever
 
             if is_paginated == "false" or is_paginated is None:
                 serializer = VehicleSerializer(vehicles, many=True)
@@ -120,7 +122,7 @@ class UnverifiedVehicleView(ListAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = PageNumberPagination
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request):
         user = request.user
         cache_key = f"unverified_vehicles_user_{user.id}"
@@ -133,7 +135,7 @@ class UnverifiedVehicleView(ListAPIView):
                 for vehicle in vehicles:
                     if vehicle.entry_gate.organization.owner != user and user.email not in vehicle.entry_gate.organization.admins:
                         vehicles = vehicles.exclude(id=vehicle.id)
-                cache.set(cache_key, vehicles, timeout=3600)
+                cache.set(cache_key, vehicles, timeout=None) # Cache forever
 
             page = self.paginate_queryset(vehicles)
             serializer = VehicleSerializer(page, many=True) if page is not None else VehicleSerializer(vehicles, many=True)
@@ -167,7 +169,7 @@ class VerificationView(APIView):
 class GetVehicleByOrganizationView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request, organization_id=None):
         user = request.user
         cache_key = f"vehicles_organization_{organization_id}_user_{user.id}"
@@ -180,7 +182,7 @@ class GetVehicleByOrganizationView(ListAPIView):
                 vehicles = vehicles.filter(
                     Q(entry_gate__organization__owner=user) |
                     ~Q(entry_gate__organization__admins__contains=[user.email]))
-                cache.set(cache_key, vehicles, timeout=3600)
+                cache.set(cache_key, vehicles, timeout=None) # Cache forever
 
             serializer = VehicleSerializer(vehicles, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)

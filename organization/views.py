@@ -21,16 +21,18 @@ from rest_framework.pagination import PageNumberPagination
 from users.models import ParkomateUser
 from users.serializers import ParkomateUserSerializer
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncWeek, TruncMonth, TruncDay
 import random
 from utils.emails import send_email
 from rest_framework import status
 from rest_framework.generics import ListAPIView
-from datetime import datetime, timedelta
+from datetime import timedelta, datetime
 from backend.settings import log_db_queries
 from django.core.cache import cache
 import redis 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
@@ -158,41 +160,35 @@ class OrganizationView(ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request):
         current_user = request.user
         cache_key = f'organizations_{current_user.id}'
-        
+
         if cache_key in cache:
-            print("redis", flush=True)
             organizations = cache.get(cache_key)
         else:
-            print("db", flush=True)
             if current_user.is_superuser:
                 organizations = self.queryset
             else:
                 organizations = Organization.objects.filter(
                     Q(owner=current_user) | Q(admins__contains=[current_user.email]))
-            
-            cache.set(cache_key, organizations, timeout=60*60)  # Cache for 1 hour
-        
+
+            cache.set(cache_key, organizations, timeout=None)  # Cache forever
+
         page = self.paginate_queryset(organizations)
-        if page is not None:
-            serializer = self.serializer_class(
-                page, context={'request': request}, many=True)
-            return self.get_paginated_response(serializer.data)
-        
         serializer = self.serializer_class(
-            organizations, context={'request': request}, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            page, context={'request': request}, many=True)
+        return self.get_paginated_response(serializer.data)
 
     def retrieve(self, request, pk=None):
-        organization = Organization.objects.get(id=pk)
+        try:
+            organization = Organization.objects.select_related('owner').get(pk=pk)
+        except Organization.DoesNotExist:
+            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+
         user = request.user
-        if user.is_superuser:
-            serializer = OrganizationSerializer(organization)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        if organization.owner == user:
+        if user.is_superuser or organization.owner == user or user.email in organization.admins:
             serializer = OrganizationSerializer(organization)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
@@ -209,7 +205,11 @@ class OrganizationView(ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
-        organization = Organization.objects.get(id=pk)
+        try:
+            organization = Organization.objects.get(pk=pk)
+        except Organization.DoesNotExist:
+            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+
         user = request.user
         if organization.owner == user:
             serializer = OrganizationSerializer(
@@ -223,7 +223,11 @@ class OrganizationView(ModelViewSet):
             return Response({"error": "You are not authorized to update this organization."}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, pk=None):
-        organization = Organization.objects.get(id=pk)
+        try:
+            organization = Organization.objects.get(pk=pk)
+        except Organization.DoesNotExist:
+            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+
         user = request.user
         if organization.owner == user:
             organization.delete()
@@ -232,7 +236,11 @@ class OrganizationView(ModelViewSet):
             return Response({"error": "You are not authorized to delete this organization."}, status=status.HTTP_403_FORBIDDEN)
 
     def partial_update(self, request, pk=None):
-        organization = Organization.objects.get(id=pk)
+        try:
+            organization = Organization.objects.get(pk=pk)
+        except Organization.DoesNotExist:
+            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+
         user = request.user
         if organization.owner == user:
             serializer = OrganizationSerializer(
@@ -252,7 +260,7 @@ class GateView(ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request):
         user = request.user
         cache_key = f"gates_user_{user.id}"
@@ -263,10 +271,10 @@ class GateView(ModelViewSet):
             gates = Gate.objects.filter(
                 Q(organization__owner=user) | Q(organization__admins__contains=[str(user.email)])
             )
-            cache.set(cache_key, gates, timeout=60*60)
+            cache.set(cache_key, gates, timeout=None)  # Cache forever
 
         page = self.paginate_queryset(gates)
-        serializer = GateSerializer(
+        serializer = self.serializer_class(
             page, context={'request': request}, many=True
         )
 
@@ -275,15 +283,16 @@ class GateView(ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
-        gate = Gate.objects.get(id=pk)
+        try:
+            gate = Gate.objects.select_related('organization').get(pk=pk)
+        except Gate.DoesNotExist:
+            return Response({"error": "Gate not found."}, status=status.HTTP_404_NOT_FOUND)
+
         organization = gate.organization
         user = request.user
         if organization.owner == user or user.email in organization.admins:
             serializer = GateSerializer(gate)
-            if serializer.is_valid():
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"error": "You are not authorized to view this gate."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -296,7 +305,11 @@ class GateView(ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk=None):
-        gate = Gate.objects.get(id=pk)
+        try:
+            gate = Gate.objects.select_related('organization').get(pk=pk)
+        except Gate.DoesNotExist:
+            return Response({"error": "Gate not found."}, status=status.HTTP_404_NOT_FOUND)
+
         organization = gate.organization
         user = request.user
         if organization.owner == user or user.email in organization.admins:
@@ -310,7 +323,11 @@ class GateView(ModelViewSet):
             return Response({"error": "You are not authorized to update this gate."}, status=status.HTTP_403_FORBIDDEN)
 
     def destroy(self, request, pk=None):
-        gate = Gate.objects.get(id=pk)
+        try:
+            gate = Gate.objects.select_related('organization').get(pk=pk)
+        except Gate.DoesNotExist:
+            return Response({"error": "Gate not found."}, status=status.HTTP_404_NOT_FOUND)
+
         organization = gate.organization
         user = request.user
         if organization.owner == user:
@@ -320,7 +337,11 @@ class GateView(ModelViewSet):
             return Response({"error": "You are not authorized to delete this gate."}, status=status.HTTP_403_FORBIDDEN)
 
     def partial_update(self, request, pk=None):
-        gate = Gate.objects.get(id=pk)
+        try:
+            gate = Gate.objects.select_related('organization').get(pk=pk)
+        except Gate.DoesNotExist:
+            return Response({"error": "Gate not found."}, status=status.HTTP_404_NOT_FOUND)
+
         organization = gate.organization
         user = request.user
         if organization.owner == user or user.email in organization.admins:
@@ -339,7 +360,7 @@ class OrganizationWithOutPaginationView(ListAPIView):
     serializer_class = OrganizationSerializer
     permission_classes = [IsAuthenticated]
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request):
         current_user = request.user
         cache_key = f"organizations_nonpaginated_{current_user.id}"
@@ -348,14 +369,14 @@ class OrganizationWithOutPaginationView(ListAPIView):
             organizations = cache.get(cache_key)
         else:
             if current_user.is_superuser:
-                organizations = Organization.objects.all()
+                organizations = self.get_queryset()
             else:
                 organizations = Organization.objects.filter(
                     Q(owner=current_user) | Q(admins__contains=[current_user.email])
                 )
-            cache.set(cache_key, organizations, timeout=60*60)
+            cache.set(cache_key, organizations, timeout=None)  # Cache forever
 
-        serializer = OrganizationSerializer(
+        serializer = self.serializer_class(
             organizations, context={'request': request}, many=True
         )
 
@@ -465,8 +486,13 @@ class AdminView(ModelViewSet):
 
             cache.set(cache_key, admins, timeout=60*60)
 
-        serializer = ParkomateUserSerializer(admins, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        page = self.paginate_queryset(admins)
+        if page is not None:
+            serializer = ParkomateUserSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        else:
+            serializer = ParkomateUserSerializer(admins, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request):
         id = request.data['organization']

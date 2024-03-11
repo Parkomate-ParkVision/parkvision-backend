@@ -64,6 +64,7 @@ class VehicleDetailsView(ModelViewSet):
     queryset = VehicleDetails.objects.all()
     pagination_class = None
 
+    @log_db_queries
     def list(self, request, *args, **kwargs):
         try:
             cache_key = f"vehicle_details_user_{request.user.id}"

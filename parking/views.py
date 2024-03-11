@@ -10,6 +10,8 @@ from rest_framework.pagination import PageNumberPagination
 from backend.settings import log_db_queries
 from django.core.cache import cache
 import redis 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
@@ -21,7 +23,7 @@ class ParkingView(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
-    @log_db_queries
+    @method_decorator(cache_page(60 * 60))
     def list(self, request):
         current_user = request.user
         cache_key = f"parkings_user_{current_user.id}"
@@ -30,7 +32,7 @@ class ParkingView(viewsets.ModelViewSet):
             queryset = cache.get(cache_key)
         else:
             queryset = Parking.objects.filter(isActive=True, organization__owner=current_user)
-            cache.set(cache_key, queryset, timeout=60*60)
+            cache.set(cache_key, queryset, timeout=None)  # Cache forever
 
         page = self.paginate_queryset(queryset)
         serializer = ParkingSerializer(page, many=True)
@@ -136,6 +138,7 @@ class CCTVView(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 60))
     def list(self, request):
         try:
             current_user = request.user
@@ -145,7 +148,7 @@ class CCTVView(viewsets.ModelViewSet):
                 queryset = cache.get(cache_key)
             else:
                 queryset = CCTV.objects.filter(isActive=True, parking__organization__owner=current_user)
-                cache.set(cache_key, queryset, timeout=60*60)
+                cache.set(cache_key, queryset, timeout=None) # Cache forever
 
             page = self.paginate_queryset(queryset)
             serializer = CCTVSerializer(page, many=True)
