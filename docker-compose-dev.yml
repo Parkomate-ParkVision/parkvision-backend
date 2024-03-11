@@ -111,6 +111,24 @@ services:
     networks:
       - parkvision-network
 
+  redis:
+    container_name: "parkomate-redis"
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - /opt/:/root/redis 
+      - /opt/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      -  REDIS_PASSWORD=redis
+      -  REDIS_PORT=6379
+      -  REDIS_DATABASES=16
+    expose:
+      - 6379    
+    networks:
+      - parkvision-network
+
 volumes:
   parkomate-backend:
   parkomate-pgadmin:

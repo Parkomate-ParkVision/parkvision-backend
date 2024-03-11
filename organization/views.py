@@ -28,38 +28,44 @@ from utils.emails import send_email
 from rest_framework import status
 from rest_framework.generics import ListAPIView
 from datetime import datetime, timedelta
+from backend.settings import log_db_queries
+from django.core.cache import cache
+import redis 
+
+
+redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
 
 
 class DashboardView(ListAPIView):
     permission_classes = [IsAuthenticated]
     filterset_class = VehicleFilter
 
+    @log_db_queries
     def list(self, request, pk=None):
         user = request.user
-        try:
-            organization = Organization.objects.get(Q(id=pk,
-                                                      owner=user) | Q(id=pk, admins__contains=[user.email]))
-        except Organization.DoesNotExist:
-            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
-        vehicles = Vehicle.objects.filter(
-            entry_gate__organization=organization)
-        if user.email not in organization.admins and organization.owner != user:
-            return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
-        else:
-            # try:
-            daily_entries = vehicles.filter(
-                entry_time__gte=datetime.now() - timedelta(days=1)).count()
-            weekly_entries = vehicles.filter(
-                entry_time__gte=datetime.now() - timedelta(days=7)).count()
-            monthly_entries = vehicles.filter(
-                entry_time__gte=datetime.now() - timedelta(days=30)).count()
+        cache_key = f"organization_dashboard_{pk}_user_{user.id}"
 
-            daily_exits = vehicles.filter(
-                exit_time__gte=datetime.now() - timedelta(days=1)).count()
-            weekly_exits = vehicles.filter(
-                exit_time__gte=datetime.now() - timedelta(days=7)).count()
-            monthly_exits = vehicles.filter(
-                exit_time__gte=datetime.now() - timedelta(days=30)).count()
+        if cache_key in cache:
+            response_data = cache.get(cache_key)
+        else:
+            try:
+                organization = Organization.objects.get(
+                    Q(id=pk, owner=user) | Q(id=pk, admins__contains=[user.email])
+                )
+            except Organization.DoesNotExist:
+                return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if user.email not in organization.admins and organization.owner != user:
+                return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
+
+            vehicles = Vehicle.objects.filter(entry_gate__organization=organization)
+            daily_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=1)).count()
+            weekly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=7)).count()
+            monthly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=30)).count()
+
+            daily_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=1)).count()
+            weekly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=7)).count()
+            monthly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=30)).count()
 
             total_slots = organization.total_slots
             filled_slots = organization.filled_slots
@@ -68,8 +74,7 @@ class DashboardView(ListAPIView):
             average_occupancy = 0
             for vehicle in vehicles:
                 if vehicle.exit_time is not None:
-                    average_occupancy += (vehicle.exit_time -
-                                          vehicle.entry_time).seconds / 3600
+                    average_occupancy += (vehicle.exit_time - vehicle.entry_time).seconds / 3600
             if vehicles.count() > 0:
                 average_occupancy = average_occupancy / vehicles.count()
 
@@ -80,17 +85,9 @@ class DashboardView(ListAPIView):
                 3: "Thursday",
                 4: "Friday",
                 5: "Saturday",
-                6: "Saturday",
+                6: "Sunday",
             }
-            daily_data_dict = {
-                'Monday': 0,
-                'Tuesday': 0,
-                'Wednesday': 0,
-                'Thursday': 0,
-                'Friday': 0,
-                'Saturday': 0,
-                'Sunday': 0
-            }
+            daily_data_dict = {day: 0 for day in DAYS.values()}
             daily_data = vehicles.exclude(exit_time=None).annotate(
                 day_start=TruncDay('entry_time')
             ).values('day_start').annotate(count=Count('id')).order_by(
@@ -98,7 +95,7 @@ class DashboardView(ListAPIView):
             )
             for data in daily_data:
                 day = data['day_start'].weekday()
-                daily_data_dict[DAYS[int(day)]] += data['count']
+                daily_data_dict[DAYS[day]] += data['count']
 
             weekly_data = vehicles.exclude(exit_time=None).annotate(
                 week_start=TruncWeek('entry_time')
@@ -130,7 +127,7 @@ class DashboardView(ListAPIView):
                 average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']
                                                   ] = average_occupancy_by_vehicle_type[vehicle_type['vehicle_type']] / vehicle_type['count']
 
-            return Response({
+            response_data = {
                 "organization": organization.name,
                 "daily_entries": daily_entries,
                 "weekly_entries": weekly_entries,
@@ -148,9 +145,11 @@ class DashboardView(ListAPIView):
                 "monthly_data": monthly_data,
                 "vehicle_types": vehicle_types,
                 "average_occupancy_by_vehicle_type": average_occupancy_by_vehicle_type
-            }, status=status.HTTP_200_OK)
-            # except Exception as e:
-            #     return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            }
+
+            cache.set(cache_key, response_data, timeout=60*60)
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class OrganizationView(ModelViewSet):
@@ -159,23 +158,32 @@ class OrganizationView(ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @log_db_queries
     def list(self, request):
         current_user = request.user
-        if current_user.is_superuser:
-            organizations = Organization.objects.all()
-            page = self.paginate_queryset(organizations)
-            if page is not None:
-                serializer = OrganizationSerializer(
-                    page, context={'request': request}, many=True)
-                return self.get_paginated_response(serializer.data)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        organizations = Organization.objects.filter(
-            Q(owner=current_user) | Q(admins__contains=[current_user.email]))
+        cache_key = f'organizations_{current_user.id}'
+        
+        if cache_key in cache:
+            print("redis", flush=True)
+            organizations = cache.get(cache_key)
+        else:
+            print("db", flush=True)
+            if current_user.is_superuser:
+                organizations = self.queryset
+            else:
+                organizations = Organization.objects.filter(
+                    Q(owner=current_user) | Q(admins__contains=[current_user.email]))
+            
+            cache.set(cache_key, organizations, timeout=60*60)  # Cache for 1 hour
+        
         page = self.paginate_queryset(organizations)
         if page is not None:
-            serializer = OrganizationSerializer(
+            serializer = self.serializer_class(
                 page, context={'request': request}, many=True)
             return self.get_paginated_response(serializer.data)
+        
+        serializer = self.serializer_class(
+            organizations, context={'request': request}, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
@@ -244,16 +252,25 @@ class GateView(ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @log_db_queries
     def list(self, request):
-        gates = Gate.objects.all()
         user = request.user
-        for gate in gates:
-            if gate.organization.owner != user and user.email not in gate.organization.admins:
-                gates.remove(gate)
+        cache_key = f"gates_user_{user.id}"
+
+        if cache_key in cache:
+            gates = cache.get(cache_key)
+        else:
+            gates = Gate.objects.filter(
+                Q(organization__owner=user) | Q(organization__admins__contains=[str(user.email)])
+            )
+            cache.set(cache_key, gates, timeout=60*60)
+
         page = self.paginate_queryset(gates)
+        serializer = GateSerializer(
+            page, context={'request': request}, many=True
+        )
+
         if page is not None:
-            serializer = GateSerializer(
-                page, context={'request': request}, many=True)
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -322,17 +339,26 @@ class OrganizationWithOutPaginationView(ListAPIView):
     serializer_class = OrganizationSerializer
     permission_classes = [IsAuthenticated]
 
+    @log_db_queries
     def list(self, request):
         current_user = request.user
-        if current_user.is_superuser:
-            organizations = Organization.objects.all()
-            serializer = OrganizationSerializer(
-                organizations, context={'request': request}, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        organizations = Organization.objects.filter(
-            Q(owner=current_user) | Q(admins__contains=[current_user.email]))
+        cache_key = f"organizations_nonpaginated_{current_user.id}"
+
+        if cache_key in cache:
+            organizations = cache.get(cache_key)
+        else:
+            if current_user.is_superuser:
+                organizations = Organization.objects.all()
+            else:
+                organizations = Organization.objects.filter(
+                    Q(owner=current_user) | Q(admins__contains=[current_user.email])
+                )
+            cache.set(cache_key, organizations, timeout=60*60)
+
         serializer = OrganizationSerializer(
-            organizations, context={'request': request}, many=True)
+            organizations, context={'request': request}, many=True
+        )
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -419,16 +445,28 @@ class AdminView(ModelViewSet):
         else:
             return Response({"error": "You are not authorized to remove admin from this organization."}, status=status.HTTP_403_FORBIDDEN)
 
+    @log_db_queries
     def list(self, request):
-        id = request.data['organization']
-        organization = Organization.objects.get(id=id)
+        organization_id = request.data.get('organization')
         user = request.user
-        if organization.owner == user:
-            admins = organization.admins
-            serializer = ParkomateUserSerializer(admins, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        cache_key = f"organization_admins_{organization_id}_user_{user.id}"
+
+        if cache_key in cache:
+            admins = cache.get(cache_key)
         else:
-            return Response({"error": "You are not authorized to view admins of this organization."}, status=status.HTTP_403_FORBIDDEN)
+            try:
+                organization = Organization.objects.get(id=organization_id)
+                if organization.owner == user:
+                    admins = organization.admins.all()
+                else:
+                    return Response({"error": "You are not authorized to view admins of this organization."}, status=status.HTTP_403_FORBIDDEN)
+            except Organization.DoesNotExist:
+                return Response({"error": "Organization does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+            cache.set(cache_key, admins, timeout=60*60)
+
+        serializer = ParkomateUserSerializer(admins, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request):
         id = request.data['organization']

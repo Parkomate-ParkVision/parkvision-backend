@@ -2,6 +2,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 import datetime
+import time
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -145,6 +147,38 @@ USE_TZ = True
 
 CELERY_BROKER_URL = 'amqp://admin:admin@parkomate-rabbitmq'
 
+
+# Caching
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient"
+        }
+    }
+}
+
+
+def log_db_queries(f) :
+    from django.db import connection
+    def new_f ( * args , ** kwargs ) :
+        start_time = time.time()
+        res = f ( * args , ** kwargs )
+        print ( "\n\n" )
+        print ( "-"*80 )
+        print ("db queries log for %s:\n" % (f.__name__))
+        print ( " TOTAL COUNT : % s " % len ( connection.queries ) )
+        for q in connection.queries :
+            print ("%s: %s\n" % (q["time"] , q["sql"]))
+        end_time = time.time()
+        duration = end_time - start_time
+        print ('\n Total time: {:.3f} ms'.format(duration * 1000.0))
+        print ("-"*80)
+        return res
+    return new_f
+
+
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 # STATICFILES_DIRS = [
@@ -218,3 +252,5 @@ SWAGGER_SETTINGS = {
         }
     }
 }
+
+

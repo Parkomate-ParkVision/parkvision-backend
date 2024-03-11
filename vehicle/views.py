@@ -17,8 +17,13 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
-
 from vehicle.filters import VehicleFilter
+from backend.settings import log_db_queries
+from django.core.cache import cache
+import redis 
+
+
+redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
 
 
 class VehicleView(ModelViewSet):
@@ -29,26 +34,30 @@ class VehicleView(ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated, VehiclePermission]
 
+    @log_db_queries
     def list(self, request, *args, **kwargs):
         try:
-            vehicles = Vehicle.objects.all()
-            vehicles = self.filter_queryset(vehicles)
-            isPaginated = request.query_params.get('isPaginated')
-            user = request.user
-            vehicles = vehicles.filter(
-                entry_gate__organization__owner=user)
-            # for vehicle in vehicles:
-            #     if vehicle.entry_gate.organization.owner != user:
-            #         vehicles = vehicles.exclude(id=vehicle.id)
-            if isPaginated == "false" or isPaginated is None:
+            cache_key = f"vehicles_user_{request.user.id}"
+            is_paginated = request.query_params.get('isPaginated')
+
+            if cache_key in cache:
+                vehicles = cache.get(cache_key)
+            else:
+                vehicles = Vehicle.objects.all()
+                vehicles = self.filter_queryset(vehicles)
+                vehicles = vehicles.filter(entry_gate__organization__owner=request.user)
+                cache.set(cache_key, vehicles, timeout=3600)
+
+            if is_paginated == "false" or is_paginated is None:
                 serializer = VehicleSerializer(vehicles, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
+
             page = self.paginate_queryset(vehicles)
+            serializer = VehicleSerializer(page, many=True)
+
             if page is not None:
-                serializer = VehicleSerializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
             else:
-                serializer = VehicleSerializer(vehicles, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
         except Vehicle.DoesNotExist:
             return Response({"error": "No vehicles found."}, status=status.HTTP_404_NOT_FOUND)
@@ -111,20 +120,25 @@ class UnverifiedVehicleView(ListAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = PageNumberPagination
 
+    @log_db_queries
     def list(self, request):
         user = request.user
+        cache_key = f"unverified_vehicles_user_{user.id}"
+
         try:
-            vehicles = Vehicle.objects.filter(verified_by=None)
-            for vehicle in vehicles:
-                if vehicle.entry_gate.organization.owner != user and user.email not in vehicle.entry_gate.organization.admins:
-                    vehicles = vehicles.exclude(id=vehicle.id)
-            page = self.paginate_queryset(vehicles)
-            if page is not None:
-                serializer = VehicleSerializer(page, many=True)
-                return self.get_paginated_response(serializer.data)
+            if cache_key in cache:
+                vehicles = cache.get(cache_key)
             else:
-                serializer = VehicleSerializer(vehicles, many=True)
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                vehicles = Vehicle.objects.filter(verified_by=None)
+                for vehicle in vehicles:
+                    if vehicle.entry_gate.organization.owner != user and user.email not in vehicle.entry_gate.organization.admins:
+                        vehicles = vehicles.exclude(id=vehicle.id)
+                cache.set(cache_key, vehicles, timeout=3600)
+
+            page = self.paginate_queryset(vehicles)
+            serializer = VehicleSerializer(page, many=True) if page is not None else VehicleSerializer(vehicles, many=True)
+            return self.get_paginated_response(serializer.data) if page is not None else Response(serializer.data, status=status.HTTP_200_OK)
+
         except Vehicle.DoesNotExist:
             return Response({"error": "No unverified vehicles found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -153,15 +167,23 @@ class VerificationView(APIView):
 class GetVehicleByOrganizationView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
+    @log_db_queries
     def list(self, request, organization_id=None):
         user = request.user
+        cache_key = f"vehicles_organization_{organization_id}_user_{user.id}"
+
         try:
-            vehicles = Vehicle.objects.filter(
-                entry_gate__organization=organization_id)
-            vehicles = vehicles.filter(
-                Q(entry_gate__organization__owner=user) |
-                ~Q(entry_gate__organization__admins__contains=[user.email]))
+            if cache_key in cache:
+                vehicles = cache.get(cache_key)
+            else:
+                vehicles = Vehicle.objects.filter(entry_gate__organization=organization_id)
+                vehicles = vehicles.filter(
+                    Q(entry_gate__organization__owner=user) |
+                    ~Q(entry_gate__organization__admins__contains=[user.email]))
+                cache.set(cache_key, vehicles, timeout=3600)
+
             serializer = VehicleSerializer(vehicles, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
+
         except Vehicle.DoesNotExist:
             return Response({"error": "No vehicles found."}, status=status.HTTP_404_NOT_FOUND)

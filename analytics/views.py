@@ -7,6 +7,12 @@ from rest_framework.permissions import IsAuthenticated
 from analytics.models import VehicleDetails
 from utils.idfy import get_idfy_request_id, get_vehicle_details
 import time
+from backend.settings import log_db_queries
+from django.core.cache import cache
+import redis 
+
+
+redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
 
 
 class IDFYDetails(GenericAPIView):
@@ -60,8 +66,16 @@ class VehicleDetailsView(ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         try:
-            serializer = self.serializer_class(self.queryset, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            cache_key = f"vehicle_details_user_{request.user.id}"
+            
+            if cache_key in cache:
+                data = cache.get(cache_key)
+            else:
+                serializer = self.serializer_class(self.queryset, many=True)
+                data = serializer.data
+                cache.set(cache_key, data, timeout=3600)  # Cache for 1 hour
+            
+            return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         

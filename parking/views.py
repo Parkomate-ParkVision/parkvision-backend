@@ -7,6 +7,12 @@ from .permissions import ParkingPermission, CCTVPermission
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from backend.settings import log_db_queries
+from django.core.cache import cache
+import redis 
+
+
+redis_instance = redis.StrictRedis(host='redis', port=6379, db=1)
 
 
 class ParkingView(viewsets.ModelViewSet):
@@ -15,13 +21,21 @@ class ParkingView(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @log_db_queries
     def list(self, request):
         current_user = request.user
-        queryset = Parking.objects.filter(
-            isActive=True, organization__owner=current_user)
+        cache_key = f"parkings_user_{current_user.id}"
+
+        if cache_key in cache:
+            queryset = cache.get(cache_key)
+        else:
+            queryset = Parking.objects.filter(isActive=True, organization__owner=current_user)
+            cache.set(cache_key, queryset, timeout=60*60)
+
         page = self.paginate_queryset(queryset)
+        serializer = ParkingSerializer(page, many=True)
+
         if page is not None:
-            serializer = ParkingSerializer(queryset, many=True)
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -124,10 +138,19 @@ class CCTVView(viewsets.ModelViewSet):
 
     def list(self, request):
         try:
-            queryset = CCTV.objects.filter(isActive=True, parking__organization__owner=request.user)
+            current_user = request.user
+            cache_key = f"cctvs_user_{current_user.id}"
+
+            if cache_key in cache:
+                queryset = cache.get(cache_key)
+            else:
+                queryset = CCTV.objects.filter(isActive=True, parking__organization__owner=current_user)
+                cache.set(cache_key, queryset, timeout=60*60)
+
             page = self.paginate_queryset(queryset)
+            serializer = CCTVSerializer(page, many=True)
+
             if page is not None:
-                serializer = CCTVSerializer(queryset, many=True)
                 return self.get_paginated_response(serializer.data)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
