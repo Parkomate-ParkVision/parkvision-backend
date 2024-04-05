@@ -30,7 +30,7 @@ from rest_framework.generics import ListAPIView
 from datetime import timedelta, datetime
 from backend.settings import log_db_queries
 from django.core.cache import cache
-import redis 
+import redis
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -52,7 +52,8 @@ class DashboardView(ListAPIView):
         else:
             try:
                 organization = Organization.objects.get(
-                    Q(id=pk, owner=user) | Q(id=pk, admins__contains=[user.email])
+                    Q(id=pk, owner=user) | Q(
+                        id=pk, admins__contains=[user.email])
                 )
             except Organization.DoesNotExist:
                 return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -60,14 +61,21 @@ class DashboardView(ListAPIView):
             if user.email not in organization.admins and organization.owner != user:
                 return Response({"error": "You are not authorized to view this organization's dashboard."}, status=status.HTTP_403_FORBIDDEN)
 
-            vehicles = Vehicle.objects.filter(entry_gate__organization=organization)
-            daily_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=1)).count()
-            weekly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=7)).count()
-            monthly_entries = vehicles.filter(entry_time__gte=datetime.now() - timedelta(days=30)).count()
+            vehicles = Vehicle.objects.filter(
+                entry_gate__organization=organization)
+            daily_entries = vehicles.filter(
+                entry_time__gte=datetime.now() - timedelta(days=1)).count()
+            weekly_entries = vehicles.filter(
+                entry_time__gte=datetime.now() - timedelta(days=7)).count()
+            monthly_entries = vehicles.filter(
+                entry_time__gte=datetime.now() - timedelta(days=30)).count()
 
-            daily_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=1)).count()
-            weekly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=7)).count()
-            monthly_exits = vehicles.filter(exit_time__gte=datetime.now() - timedelta(days=30)).count()
+            daily_exits = vehicles.filter(
+                exit_time__gte=datetime.now() - timedelta(days=1)).count()
+            weekly_exits = vehicles.filter(
+                exit_time__gte=datetime.now() - timedelta(days=7)).count()
+            monthly_exits = vehicles.filter(
+                exit_time__gte=datetime.now() - timedelta(days=30)).count()
 
             total_slots = organization.total_slots
             filled_slots = organization.filled_slots
@@ -76,7 +84,8 @@ class DashboardView(ListAPIView):
             average_occupancy = 0
             for vehicle in vehicles:
                 if vehicle.exit_time is not None:
-                    average_occupancy += (vehicle.exit_time - vehicle.entry_time).seconds / 3600
+                    average_occupancy += (vehicle.exit_time -
+                                          vehicle.entry_time).seconds / 3600
             if vehicles.count() > 0:
                 average_occupancy = average_occupancy / vehicles.count()
 
@@ -177,19 +186,21 @@ class OrganizationView(ModelViewSet):
             cache.set(cache_key, organizations, timeout=None)  # Cache forever
 
         page = self.paginate_queryset(organizations)
-        serializer = self.serializer_class(
+        serializer = OrganizationSerializer(
             page, context={'request': request}, many=True)
         return self.get_paginated_response(serializer.data)
 
     def retrieve(self, request, pk=None):
         try:
-            organization = Organization.objects.select_related('owner').get(pk=pk)
+            organization = Organization.objects.select_related(
+                'owner').get(pk=pk)
         except Organization.DoesNotExist:
             return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
 
         user = request.user
         if user.is_superuser or organization.owner == user or user.email in organization.admins:
-            serializer = OrganizationSerializer(organization)
+            serializer = OrganizationSerializer(
+                organization, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"error": "You are not authorized to view this organization."}, status=status.HTTP_403_FORBIDDEN)
@@ -213,7 +224,7 @@ class OrganizationView(ModelViewSet):
         user = request.user
         if organization.owner == user:
             serializer = OrganizationSerializer(
-                organization, data=request.data)
+                organization, data=request.data, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -244,7 +255,7 @@ class OrganizationView(ModelViewSet):
         user = request.user
         if organization.owner == user:
             serializer = OrganizationSerializer(
-                organization, data=request.data, partial=True)
+                organization, data=request.data, partial=True, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -269,7 +280,8 @@ class GateView(ModelViewSet):
             gates = cache.get(cache_key)
         else:
             gates = Gate.objects.filter(
-                Q(organization__owner=user) | Q(organization__admins__contains=[str(user.email)])
+                Q(organization__owner=user) | Q(
+                    organization__admins__contains=[str(user.email)])
             )
             cache.set(cache_key, gates, timeout=None)  # Cache forever
 
@@ -372,7 +384,8 @@ class OrganizationWithOutPaginationView(ListAPIView):
                 organizations = self.get_queryset()
             else:
                 organizations = Organization.objects.filter(
-                    Q(owner=current_user) | Q(admins__contains=[current_user.email])
+                    Q(owner=current_user) | Q(
+                        admins__contains=[current_user.email])
                 )
             cache.set(cache_key, organizations, timeout=None)  # Cache forever
 

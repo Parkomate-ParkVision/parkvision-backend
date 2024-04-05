@@ -9,6 +9,7 @@ from users.models import ParkomateUser
 class OrganizationSerializer(serializers.ModelSerializer):
     ownerName = serializers.SerializerMethodField()
     adminDetails = serializers.SerializerMethodField()
+    isOwner = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
@@ -30,9 +31,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
             'isActive',
             'admins',
             'adminDetails',
+            'ownerName',
+            'isOwner',
         ]
-        get_fields = fields.append('ownerName')
-        list_fields = fields.append('ownerName')
+        get_fields = fields
+        list_fields = fields
 
     def get_adminDetails(self, obj):
         admins = obj.admins
@@ -55,6 +58,15 @@ class OrganizationSerializer(serializers.ModelSerializer):
         if obj.owner:
             return obj.owner.name
         return "no owner found"
+
+    def get_isOwner(self, obj):
+        user = self.context['request'].user
+        if user.is_superuser:
+            return True
+        print(user.email, obj.owner.email, flush=True)
+        if user.email == obj.owner.email:
+            return True
+        return False
 
 
 class GateSerializer(serializers.ModelSerializer):

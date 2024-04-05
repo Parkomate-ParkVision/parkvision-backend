@@ -20,7 +20,7 @@ from rest_framework import status
 from vehicle.filters import VehicleFilter
 from backend.settings import log_db_queries
 from django.core.cache import cache
-import redis 
+import redis
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -47,8 +47,9 @@ class VehicleView(ModelViewSet):
             else:
                 vehicles = Vehicle.objects.all()
                 vehicles = self.filter_queryset(vehicles)
-                vehicles = vehicles.filter(entry_gate__organization__owner=request.user)
-                cache.set(cache_key, vehicles, timeout=None) # Cache forever
+                vehicles = vehicles.filter(
+                    entry_gate__organization__owner=request.user)
+                cache.set(cache_key, vehicles, timeout=None)  # Cache forever
 
             if is_paginated == "false" or is_paginated is None:
                 serializer = VehicleSerializer(vehicles, many=True)
@@ -135,10 +136,11 @@ class UnverifiedVehicleView(ListAPIView):
                 for vehicle in vehicles:
                     if vehicle.entry_gate.organization.owner != user and user.email not in vehicle.entry_gate.organization.admins:
                         vehicles = vehicles.exclude(id=vehicle.id)
-                cache.set(cache_key, vehicles, timeout=None) # Cache forever
+                cache.set(cache_key, vehicles, timeout=None)  # Cache forever
 
             page = self.paginate_queryset(vehicles)
-            serializer = VehicleSerializer(page, many=True) if page is not None else VehicleSerializer(vehicles, many=True)
+            serializer = VehicleSerializer(
+                page, many=True) if page is not None else VehicleSerializer(vehicles, many=True)
             return self.get_paginated_response(serializer.data) if page is not None else Response(serializer.data, status=status.HTTP_200_OK)
 
         except Vehicle.DoesNotExist:
@@ -178,11 +180,12 @@ class GetVehicleByOrganizationView(ListAPIView):
             if cache_key in cache:
                 vehicles = cache.get(cache_key)
             else:
-                vehicles = Vehicle.objects.filter(entry_gate__organization=organization_id)
+                vehicles = Vehicle.objects.filter(
+                    entry_gate__organization=organization_id)
                 vehicles = vehicles.filter(
                     Q(entry_gate__organization__owner=user) |
                     ~Q(entry_gate__organization__admins__contains=[user.email]))
-                cache.set(cache_key, vehicles, timeout=None) # Cache forever
+                cache.set(cache_key, vehicles, timeout=None)  # Cache forever
 
             serializer = VehicleSerializer(vehicles, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
