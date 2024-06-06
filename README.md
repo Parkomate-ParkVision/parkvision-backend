@@ -80,4 +80,7 @@ python manage.py migrate
 ./run.sh stop-dev
 ```
 
+<br>
+<br>
+
 ![PARKVISION AHH BACKEND](https://github.com/Parkomate-ParkVision/parkvision-backend/assets/67187699/006ab233-521b-4b37-a25e-859020e55c69)
