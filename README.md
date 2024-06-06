@@ -1,14 +1,59 @@
-# Parkomate Parking Analytics Dashboard (Backend)
+<p align="center">
+<img src="https://github.com/Parkomate-ParkVision/parkvision-frontend/assets/85283622/6f609ea7-b547-43cb-a771-2240ec86e914" width=400 />
+</p>
 
-Frontend - https://github.com/BE-Project-Parkomate/dashboard-frontend
+# ParkVision Parking Analytics Dashboard (Backend)
 
-Clone the project-
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Features](#features)
+- [Technologies](#technologies)
+- [Getting Started](#getting-started)
+- [Installation](#installation)
+
+## Introduction
+
+**ParkVision** is an advanced analytics dashboard designed for monitoring parking statistics and customer segmentation. This repository contains the backend code for ParkVision, handling data processing, storage, and AI analytics.
+
+## Features
+
+- **Data Management**: Handles large volumes of parking and customer data.
+- **AI Analytics**: Processes data using machine learning algorithms to generate insights.
+- **API Services**: Provides RESTful APIs for frontend integration.
+- **Email Notifications**: Sends alerts to users.
+- **Dockerized Deployment**: Simplified setup and deployment using Docker.
+
+## Technologies
+
+- **Python**: Main programming language for backend development.
+- **Django**: High-level Python web framework for rapid development.
+- **PostgreSQL**: Database management system for storing and managing data.
+- **Docker**: Containerization platform for consistent environments.
+- **Celery**: Asynchronous task queue/job queue for running background tasks.
+- **Flower**: Used as a message broker for Celery.
+- **Redis**: In-memory data structure store used for backend data caching.
+
+## Getting Started
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- Docker
+- Docker Compose
+
+### Installation
+
+1. **Clone the repository:**
 ```
-git clone https://github.com/BE-Project-Parkomate/dashboard-backend
+git clone https://github.com/BE-Project-Parkomate/parkvision-backend
+cd parkvision-backend
 ```
 
-Create env file-
-```
+2. **Create env file:**
+```sh
 Create a .env file in the project folder with the following fields:
 DB_NAME = <db_name>
 DB_USER = <db_user>
@@ -19,18 +64,18 @@ EMAIL = <email>
 EMAIL_PASSWORD = <email_app_password>
 ```
 
-Build/Start docker images-
-```
+3. **Build/Start docker images:**
+```sh
 ./run.sh start-dev
 ```
 
-Migrate the project-
-```
+4. **Migrate the project:**
+```sh
 ./run.sh interactive-dev
 python manage.py migrate
 ```
 
-Stop docker images-
-```
+5. **Stop docker images:**
+```sh
 ./run.sh stop-dev
 ```
